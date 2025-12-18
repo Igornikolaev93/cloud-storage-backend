@@ -4,358 +4,206 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\File;
-use App\Models\Folder;
+use App\Utils\Auth;
+use App\Utils\Response;
 use Exception;
 
 class FileController extends BaseController
 {
     /**
-     * Получить список файлов пользователя
+     * List all files for the authenticated user.
      */
     public function list(): void
     {
-        try {
-            $folderId = $_GET['folder_id'] ?? null;
-            
-            if ($folderId) {
-                // Проверяем существование папки и доступ
-                $folder = Folder::getById((int)$folderId);
-                if (!$folder || $folder['user_id'] != $this->user['id']) {
-                    $this->notFound('Folder not found');
-                    return;
-                }
-            }
-            
-            $files = File::getUserFiles($this->user['id'], $folderId ? (int)$folderId : null);
-            
-            $this->success(['files' => $files]);
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
-        }
-    }
-    
-    /**
-     * Загрузить файл
-     */
-    public function upload(): void
-    {
-        $files = $this->getUploadedFiles();
-        
-        if (empty($files['file'])) {
-            $this->error('No file uploaded', 400);
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
             return;
         }
-        
+
         try {
-            $folderId = $_POST['folder_id'] ?? null;
-            
-            if ($folderId) {
-                // Проверяем существование папки
-                $folder = Folder::getById((int)$folderId);
-                if (!$folder || $folder['user_id'] != $this->user['id']) {
-                    $this->notFound('Folder not found');
-                    return;
-                }
-            }
-            
-            $fileData = File::upload($this->user['id'], $files['file'], $folderId ? (int)$folderId : null);
-            
-            $this->success(['file' => $fileData], 'File uploaded successfully', 201);
+            $files = File::findByUser($userId);
+            Response::json($files);
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not fetch files', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
-     * Получить информацию о файле
+     * Get a specific file by ID.
      */
-    public function get(): void
+    public function get(int $id): void
     {
-        try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
-            }
-            
-            $file = File::getById($fileId);
-            
-            if (!$file) {
-                $this->notFound('File not found');
-                return;
-            }
-            
-            // Проверяем доступ
-            if (!File::hasAccess($fileId, $this->user['id'])) {
-                $this->forbidden();
-                return;
-            }
-            
-            $this->success(['file' => $file]);
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
         }
-    }
-    
-    /**
-     * Обновить файл (переименовать/переместить)
-     */
-    public function update(): void
-    {
+
         try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            $input = $this->getInput();
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
-            }
-            
-            // Проверяем, что файл существует и пользователь - владелец
-            $file = File::getById($fileId);
-            if (!$file) {
-                $this->notFound('File not found');
-                return;
-            }
-            
-            if ($file['user_id'] != $this->user['id']) {
-                $this->forbidden();
-                return;
-            }
-            
-            // Если указана папка, проверяем её существование
-            if (isset($input['folder_id'])) {
-                if ($input['folder_id']) {
-                    $folder = Folder::getById((int)$input['folder_id']);
-                    if (!$folder || $folder['user_id'] != $this->user['id']) {
-                        $this->error('Folder not found', 404);
-                        return;
-                    }
-                } else {
-                    $input['folder_id'] = null; // Перемещаем в корень
-                }
-            }
-            
-            $updated = File::update($fileId, $this->user['id'], $input);
-            
-            if ($updated) {
-                $this->success(['updated' => true], 'File updated successfully');
+            $file = File::findById($id, $userId);
+            if ($file) {
+                // In a real application, you would generate a secure, temporary download link.
+                // For now, we just return the file information.
+                Response::json($file);
             } else {
-                $this->error('Failed to update file');
+                Response::json(['error' => 'File not found or no access'], 404);
             }
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not fetch file', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
-     * Удалить файл
+     * Add a new file.
      */
-    public function delete(): void
+    public function add(): void
     {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        // In a real application, you would handle file uploads from $_FILES.
+        // For this example, we'll simulate creating a file from request data.
+        $data = $this->getRequestData();
+        $fileName = $data['name'] ?? 'new_file.txt';
+        $directoryId = $data['directory_id'] ?? null;
+
         try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
+            $fileId = File::create($userId, $fileName, $directoryId);
+            if ($fileId) {
+                Response::json(['message' => 'File created successfully', 'file_id' => $fileId], 201);
+            } else {
+                Response::json(['error' => 'Failed to create file'], 500);
             }
-            
-            // Проверяем, что файл существует и пользователь - владелец
-            $file = File::getById($fileId);
-            if (!$file) {
-                $this->notFound('File not found');
-                return;
+        } catch (Exception $e) {
+            Response::json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Rename a file.
+     */
+    public function rename(): void
+    {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $data = $this->getRequestData();
+        $fileId = $data['id'] ?? 0;
+        $newName = $data['name'] ?? '';
+
+        if (!$fileId || !$newName) {
+            Response::json(['error' => 'File ID and new name are required'], 400);
+            return;
+        }
+
+        try {
+            $renamed = File::rename($fileId, $userId, $newName);
+            if ($renamed) {
+                Response::json(['message' => 'File renamed successfully']);
+            } else {
+                Response::json(['error' => 'File not found or permission denied'], 404);
             }
-            
-            if ($file['user_id'] != $this->user['id']) {
-                $this->forbidden();
-                return;
-            }
-            
-            $deleted = File::delete($fileId, $this->user['id']);
-            
+        } catch (Exception $e) {
+            Response::json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Remove a file.
+     */
+    public function remove(int $id): void
+    {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        try {
+            $deleted = File::remove($id, $userId);
             if ($deleted) {
-                $this->success(['deleted' => true], 'File deleted successfully');
+                Response::json(['message' => 'File removed successfully']);
             } else {
-                $this->error('Failed to delete file');
+                Response::json(['error' => 'File not found or permission denied'], 404);
             }
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not remove file', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
-     * Скачать файл
+     * Get a list of users a file is shared with.
      */
-    public function download(): void
+    public function getSharedUsers(int $id): void
     {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
         try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
+            $users = File::getSharedUsers($id, $userId);
+            if ($users !== null) {
+                Response::json($users);
+            } else {
+                Response::json(['error' => 'File not found or permission denied'], 404);
             }
-            
-            // Проверяем доступ
-            if (!File::hasAccess($fileId, $this->user['id'])) {
-                $this->forbidden();
-                return;
-            }
-            
-            $filePath = File::getFilePath($fileId);
-            $file = File::getById($fileId);
-            
-            if (!$filePath || !$file) {
-                $this->notFound('File not found');
-                return;
-            }
-            
-            // Отправляем файл
-            header('Content-Description: File Transfer');
-            header('Content-Type: ' . $file['mime_type']);
-            header('Content-Disposition: attachment; filename="' . basename($file['name']) . '"');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate');
-            header('Pragma: public');
-            header('Content-Length: ' . filesize($filePath));
-            
-            readfile($filePath);
-            exit;
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not get shared users', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
-     * Получить список общих файлов
+     * Share a file with a user.
      */
-    public function listShared(): void
+    public function share(int $id, int $shareWithUserId): void
     {
-        try {
-            $files = File::getSharedFiles($this->user['id']);
-            $this->success(['files' => $files]);
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
         }
-    }
-    
-    /**
-     * Получить список пользователей, имеющих доступ к файлу
-     */
-    public function getShares(): void
-    {
+
         try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
-            }
-            
-            // Проверяем, что файл существует и пользователь - владелец
-            $file = File::getById($fileId);
-            if (!$file) {
-                $this->notFound('File not found');
-                return;
-            }
-            
-            if ($file['user_id'] != $this->user['id']) {
-                $this->forbidden();
-                return;
-            }
-            
-            $sharedUsers = File::getSharedUsers($fileId);
-            $this->success(['shared_users' => $sharedUsers]);
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
-        }
-    }
-    
-    /**
-     * Поделиться файлом
-     */
-    public function addShare(): void
-    {
-        try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            $input = $this->getInput();
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
-            }
-            
-            $errors = $this->validate($input, [
-                'user_id' => 'required',
-                'permission' => 'required'
-            ]);
-            
-            if (!empty($errors)) {
-                $this->error('Validation failed', 422, $errors);
-                return;
-            }
-            
-            if (!in_array($input['permission'], ['read', 'write'])) {
-                $this->error('Invalid permission type', 422);
-                return;
-            }
-            
-            $shared = File::share(
-                $fileId,
-                $this->user['id'],
-                (int)$input['user_id'],
-                $input['permission']
-            );
-            
+            $shared = File::share($id, $userId, $shareWithUserId);
             if ($shared) {
-                $this->success(['shared' => true], 'File shared successfully');
+                Response::json(['message' => 'File shared successfully']);
             } else {
-                $this->error('Failed to share file');
+                Response::json(['error' => 'File not found or permission denied'], 404);
             }
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not share file', 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
-     * Удалить общий доступ
+     * Unshare a file with a user.
      */
-    public function removeShare(): void
+    public function unshare(int $id, int $shareWithUserId): void
     {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
         try {
-            $fileId = (int)($_REQUEST['route_params']['id'] ?? 0);
-            $input = $this->getInput();
-            
-            if (!$fileId) {
-                $this->error('File ID is required', 400);
-                return;
-            }
-            
-            $errors = $this->validate($input, [
-                'user_id' => 'required'
-            ]);
-            
-            if (!empty($errors)) {
-                $this->error('Validation failed', 422, $errors);
-                return;
-            }
-            
-            $unshared = File::unshare(
-                $fileId,
-                $this->user['id'],
-                (int)$input['user_id']
-            );
-            
+            $unshared = File::unshare($id, $userId, $shareWithUserId);
             if ($unshared) {
-                $this->success(['unshared' => true], 'Access removed successfully');
+                Response::json(['message' => 'File unshared successfully']);
             } else {
-                $this->error('Failed to remove access');
+                Response::json(['error' => 'File not found or permission denied'], 404);
             }
         } catch (Exception $e) {
-            $this->error($e->getMessage());
+            Response::json(['error' => 'Could not unshare file', 'message' => $e->getMessage()], 500);
         }
     }
 }

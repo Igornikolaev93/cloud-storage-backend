@@ -1,21 +1,7 @@
-RewriteEngine On
-RewriteBase /
 
-# Разрешаем доступ к существующим файлам и папкам
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-l
-
-# Перенаправляем все запросы на index.php
-RewriteRule ^(.*)$ index.php [QSA,L]
-
-# Заголовки безопасности
-Header set X-Content-Type-Options "nosniff"
-Header set X-Frame-Options "DENY"
-Header set X-XSS-Protection "1; mode=block"
-
-# Ограничение размера загружаемых файлов (2GB)
-php_value upload_max_filesize 2G
-php_value post_max_size 2G
-php_value max_execution_time 300
-php_value max_input_time 300
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>

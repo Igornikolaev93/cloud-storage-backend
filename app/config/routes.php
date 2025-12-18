@@ -1,117 +1,90 @@
 <?php
-declare(strict_types=1);
 
 $routes = [
-    // Главная страница
-    '/' => [
-        'GET' => 'IndexController@index'
+    // Auth routes
+    '/login' => [
+        'POST' => 'UserController@login'
     ],
-    
-    // Аутентификация
-    '/auth/login' => [
-        'POST' => 'AuthController@login'
+    '/logout' => [
+        'GET' => 'UserController@logout'
     ],
-    '/auth/logout' => [
-        'GET' => 'AuthController@logout'
+    '/register' => [
+        'POST' => 'UserController@register'
     ],
-    '/auth/register' => [
-        'POST' => 'AuthController@register'
+    '/reset-password' => [
+        'POST' => 'UserController@reset_password'
     ],
-    '/auth/reset-password' => [
-        'POST' => 'AuthController@resetPassword'
-    ],
-    '/auth/verify-token' => [
-        'POST' => 'AuthController@verifyToken'
-    ],
-    '/auth/change-password' => [
-        'POST' => 'AuthController@changePassword'
-    ],
-    
-    // Пользователи
-    '/users/profile' => [
-        'GET' => 'UserController@getProfile',
-        'PUT' => 'UserController@updateProfile'
-    ],
+
+    // User routes
     '/users/list' => [
         'GET' => 'UserController@listUsers'
-    ],
-    '/users/search' => [
-        'GET' => 'UserController@search'
     ],
     '/users/get/{id}' => [
         'GET' => 'UserController@getUser'
     ],
-    
-    // Администратор
-    '/admin/users' => [
-        'GET' => 'AdminController@listUsers',
-        'POST' => 'AdminController@createUser'
+    '/users/update' => [
+        'PUT' => 'UserController@updateProfile'
     ],
-    '/admin/users/{id}' => [
-        'GET' => 'AdminController@getUser',
-        'PUT' => 'AdminController@updateUser',
+    '/users/search/{email}' => [
+        'GET' => 'UserController@search'
+    ],
+
+    // Admin routes
+    '/admin/users/list' => [
+        'GET' => 'AdminController@listUsers'
+    ],
+    '/admin/users/get/{id}' => [
+        'GET' => 'AdminController@getUser'
+    ],
+    '/admin/users/update/{id}' => [
+        'PUT' => 'AdminController@updateUser'
+    ],
+    '/admin/users/delete/{id}' => [
         'DELETE' => 'AdminController@deleteUser'
     ],
-    '/admin/stats' => [
-        'GET' => 'AdminController@getStats'
+
+    // File routes
+    '/files/list' => [
+        'GET' => 'FileController@list'
     ],
-    
-    // Файлы
-    '/files' => [
-        'GET' => 'FileController@list',
-        'POST' => 'FileController@upload'
+    '/files/get/{id}' => [
+        'GET' => 'FileController@get'
     ],
-    '/files/{id}' => [
-        'GET' => 'FileController@get',
-        'PUT' => 'FileController@update',
-        'DELETE' => 'FileController@delete'
+    '/files/add' => [
+        'POST' => 'FileController@add'
     ],
-    '/files/{id}/download' => [
-        'GET' => 'FileController@download'
+    '/files/rename' => [
+        'PUT' => 'FileController@rename'
     ],
-    '/files/{id}/share' => [
-        'GET' => 'FileController@getShares',
-        'POST' => 'FileController@addShare',
-        'DELETE' => 'FileController@removeShare'
+    '/files/remove/{id}' => [
+        'DELETE' => 'FileController@remove'
     ],
-    '/files/shared' => [
-        'GET' => 'FileController@listShared'
+    '/files/share/{id}' => [
+        'GET' => 'FileController@getSharedUsers'
     ],
-    
-    // Папки
-    '/folders' => [
-        'GET' => 'FolderController@list',
-        'POST' => 'FolderController@create'
+    '/files/share/{id}/{user_id}' => [
+        'PUT' => 'FileController@share',
+        'DELETE' => 'FileController@unshare'
     ],
-    '/folders/{id}' => [
-        'GET' => 'FolderController@get',
-        'PUT' => 'FolderController@update',
-        'DELETE' => 'FolderController@delete'
+
+    // Directory routes
+    '/directories/add' => [
+        'POST' => 'DirectoryController@add'
     ],
-    '/folders/{id}/files' => [
-        'GET' => 'FolderController@listFiles'
+    '/directories/rename' => [
+        'PUT' => 'DirectoryController@rename'
     ],
-    
-    // Поиск
-    '/search' => [
-        'GET' => 'SearchController@search'
+    '/directories/get/{id}' => [
+        'GET' => 'DirectoryController@get'
     ],
-    
-    // Статистика
-    '/stats' => [
-        'GET' => 'StatsController@getStats'
-    ]
+    '/directories/delete/{id}' => [
+        'DELETE' => 'DirectoryController@delete'
+    ],
 ];
 
-// Фильтры для маршрутов (middleware)
 $routeFilters = [
-    '/auth/login' => 'guest',
-    '/auth/register' => 'guest',
-    '/auth/reset-password' => 'guest',
     '/users/*' => 'auth',
-    '/admin/*' => ['auth', 'admin'],
+    '/admin/*' => 'admin',
     '/files/*' => 'auth',
-    '/folders/*' => 'auth',
-    '/search' => 'auth',
-    '/stats' => 'auth'
+    '/directories/*' => 'auth',
 ];
