@@ -42,18 +42,17 @@ define('ALLOWED_MIME_TYPES', [
 
 // Настройки базы данных
 define('DB_CONFIG', [
+    'driver' => 'pgsql',
     'host' => 'localhost',
     'database' => 'cloud_storage',
-    'username' => 'root',
-    'password' => '',
-    'charset' => 'utf8mb4',
-    'collation' => 'utf8mb4_unicode_ci',
-    'port' => 3306,
+    'username' => 'postgres',
+    'password' => 'your_password', // Replace with your PostgreSQL password
+    'charset' => 'utf8',
+    'port' => 5432,
     'options' => [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
-        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
     ]
 ]);
 

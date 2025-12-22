@@ -20,13 +20,22 @@ class Database
             $config = DB_CONFIG;
             
             try {
-                $dsn = sprintf(
-                    'mysql:host=%s;dbname=%s;port=%s;charset=%s',
-                    $config['host'],
-                    $config['database'],
-                    $config['port'],
-                    $config['charset']
-                );
+                if ($config['driver'] === 'pgsql') {
+                    $dsn = sprintf(
+                        'pgsql:host=%s;port=%s;dbname=%s',
+                        $config['host'],
+                        $config['port'],
+                        $config['database']
+                    );
+                } else { // default to mysql
+                    $dsn = sprintf(
+                        'mysql:host=%s;dbname=%s;port=%s;charset=%s',
+                        $config['host'],
+                        $config['database'],
+                        $config['port'],
+                        $config['charset']
+                    );
+                }
                 
                 self::$connection = new PDO(
                     $dsn,
@@ -34,9 +43,6 @@ class Database
                     $config['password'],
                     $config['options']
                 );
-                
-                // Устанавливаем атрибуты
-                self::$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 
             } catch (PDOException $e) {
                 error_log("Database connection failed: " . $e->getMessage());
@@ -127,7 +133,9 @@ class Database
         $stmt = self::getConnection()->prepare($sql);
         $stmt->execute(array_values($data));
         
-        return (int) self::getConnection()->lastInsertId();
+        // For PostgreSQL, you might need to pass the sequence name, e.g., 'table_id_seq'
+        $lastId = self::getConnection()->lastInsertId();
+        return $lastId ? (int)$lastId : null;
     }
     
     /**
