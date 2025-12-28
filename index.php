@@ -5,29 +5,12 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+// Автозагрузка Composer
+require_once __DIR__ . '/vendor/autoload.php';
+
 // Загрузка конфигураций
 require_once __DIR__ . '/app/config/config.php';
 require_once __DIR__ . '/app/config/routes.php';
-
-// Автозагрузка классов
-spl_autoload_register(function ($className) {
-    $prefix = 'App\\';
-    $baseDir = __DIR__ . '/app/';
-    
-    $len = strlen($prefix);
-    if (strncmp($prefix, $className, $len) !== 0) {
-        return;
-    }
-    
-    $relativeClass = substr($className, $len);
-    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
-    
-    if (file_exists($file)) {
-        require $file;
-    } else {
-        error_log("Class file not found: " . $file);
-    }
-});
 
 // Функция для обработки маршрутов
 function handleRequest(array $routes, array $routeFilters): void

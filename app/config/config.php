@@ -44,9 +44,9 @@ define('ALLOWED_MIME_TYPES', [
 define('DB_CONFIG', [
     'driver' => 'pgsql',
     'host' => 'localhost',
-    'database' => 'cloud_storage',
+    'database' => 'storage',
     'username' => 'postgres',
-    'password' => 'your_password', // Replace with your PostgreSQL password
+    'password' => '1234', // Replace with your PostgreSQL password
     'charset' => 'utf8',
     'port' => 5432,
     'options' => [

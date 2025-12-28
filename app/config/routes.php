@@ -1,6 +1,9 @@
 <?php
 
 $routes = [
+    '/' => [
+        'GET' => 'FileController@list'
+    ],
     // Auth routes
     '/login' => [
         'POST' => 'UserController@login'
@@ -83,8 +86,18 @@ $routes = [
 ];
 
 $routeFilters = [
+    // Guest routes: only accessible when not logged in.
+    '/login' => 'guest',
+    '/register' => 'guest',
+    '/reset-password' => 'guest',
+
+    // Authenticated routes: only accessible when logged in.
+    '/' => 'auth',
+    '/logout' => 'auth',
     '/users/*' => 'auth',
-    '/admin/*' => 'admin',
     '/files/*' => 'auth',
     '/directories/*' => 'auth',
+
+    // Admin routes: only accessible by admin users.
+    '/admin/*' => 'admin',
 ];
