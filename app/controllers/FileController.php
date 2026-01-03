@@ -26,7 +26,7 @@ class FileController extends BaseController
             $files = File::findByUser($userId);
             View::render('files', [
                 'files' => $files,
-                'username' => $user['username']
+                'fullName' => $user['first_name'] . ' ' . $user['last_name']
             ]);
         } catch (Exception $e) {
             View::render('files', ['error' => 'Could not fetch files: ' . $e->getMessage()]);

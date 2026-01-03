@@ -5,92 +5,68 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Utils\Auth;
-use App\Utils\Response;
+use App\Utils\View;
 use Exception;
 
 class AdminController extends BaseController
 {
     public function __construct()
     {
-        // Ensure the user is an admin for all methods in this controller
+        // Protect all methods in this controller
         if (!Auth::hasRole('admin')) {
-            Response::json(['error' => 'Forbidden'], 403);
+            header('Location: /');
             exit;
         }
     }
 
     /**
-     * Get a list of users.
+     * Show the user management page.
      */
-    public function listUsers(): void
+    public function users(): void
     {
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 20;
-
         try {
-            $users = User::getList($page, $perPage);
-            Response::json($users);
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $result = User::getList($page, 10); // 10 users per page
+            
+            View::render('admin/users', [
+                'users' => $result['users'],
+                'pagination' => $result['pagination'],
+                'user_role' => Auth::user()['role']
+            ]);
         } catch (Exception $e) {
-            Response::json(['error' => 'Could not fetch users', 'message' => $e->getMessage()], 500);
+            View::render('admin/users', ['error' => 'Could not fetch users: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Get a specific user by ID.
+     * Handle user role change.
      */
-    public function getUser(int $id): void
+    public function changeRole(int $userId): void
     {
-        try {
-            $user = User::findById($id);
-            if ($user) {
-                Response::json($user);
-            } else {
-                Response::json(['error' => 'User not found'], 404);
-            }
-        } catch (Exception $e) {
-            Response::json(['error' => 'Could not fetch user', 'message' => $e->getMessage()], 500);
+        $newRole = $_POST['role'] ?? '';
+
+        if (empty($newRole)) {
+            header('Location: /admin/users');
+            exit;
         }
-    }
-
-    /**
-     * Update a user's information.
-     */
-    public function updateUser(int $id): void
-    {
-        $data = $this->getRequestData();
 
         try {
-            // Update profile data
-            if (isset($data['first_name']) || isset($data['last_name']) || isset($data['email'])) {
-                User::updateProfile($id, $data);
+            // Prevent an admin from accidentally removing their own admin status
+            if ($userId === Auth::id() && $newRole !== 'admin') {
+                throw new Exception('You cannot remove your own admin status.');
             }
-
-            // Update role
-            if (isset($data['role'])) {
-                User::changeRole($id, $data['role']);
-            }
-
-            Response::json(['message' => 'User updated successfully']);
-
+            
+            User::changeRole($userId, $newRole);
+            header('Location: /admin/users');
+            exit;
         } catch (Exception $e) {
-            Response::json(['error' => $e->getMessage()], 400);
-        }
-    }
-
-    /**
-     * Delete a user.
-     */
-    public function deleteUser(int $id): void
-    {
-        try {
-            $deleted = User::delete($id);
-            if ($deleted) {
-                Response::json(['message' => 'User deleted successfully']);
-            } else {
-                Response::json(['error' => 'User not found or could not be deleted'], 404);
-            }
-        } catch (Exception $e) {
-            Response::json(['error' => 'Could not delete user', 'message' => $e->getMessage()], 500);
+            $result = User::getList();
+            View::render('admin/users', [
+                'users' => $result['users'],
+                'pagination' => $result['pagination'],
+                'error' => $e->getMessage(),
+                'user_role' => Auth::user()['role']
+            ]);
         }
     }
 }

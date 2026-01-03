@@ -24,6 +24,14 @@ $routes = [
     '/files/remove/{id}' => [
         'GET' => 'FileController@remove'
     ],
+
+    // Admin routes
+    '/admin/users' => [
+        'GET' => 'AdminController@users'
+    ],
+    '/admin/users/{id}/role' => [
+        'POST' => 'AdminController@changeRole'
+    ],
 ];
 
 $routeFilters = [
@@ -35,4 +43,7 @@ $routeFilters = [
     '/' => 'auth',
     '/logout' => 'auth',
     '/files/*' => 'auth',
+
+    // Admin routes
+    '/admin/*' => 'admin',
 ];

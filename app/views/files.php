@@ -2,7 +2,7 @@
 
 <div class="container">
     <h2>My Files</h2>
-    <p>Welcome, <?php echo $username; ?>! <a href="/logout">Logout</a></p>
+    <p>Welcome, <?php echo $fullName; ?>! <a href="/logout">Logout</a></p>
     
     <?php if (isset($message)): ?>
         <div class="alert alert-success"><?php echo $message; ?></div>
@@ -25,7 +25,7 @@
     <ul class="list-group">
         <?php foreach ($files as $file): ?>
             <li class="list-group-item">
-                <?php echo htmlspecialchars($file['filename']); ?>
+                <?php echo htmlspecialchars($file['name']); ?>
                 <a href="/files/remove/<?php echo $file['id']; ?>" class="btn btn-danger btn-sm float-right">Delete</a>
             </li>
         <?php endforeach; ?>
