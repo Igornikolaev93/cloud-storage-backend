@@ -2,7 +2,6 @@
 
 <div class="container">
     <h2>My Files</h2>
-    <p>Welcome, <?php echo $fullName; ?>! <a href="/logout">Logout</a></p>
     
     <?php if (isset($message)): ?>
         <div class="alert alert-success"><?php echo $message; ?></div>
