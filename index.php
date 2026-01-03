@@ -17,7 +17,13 @@ function handleRequest(array $routes, array $routeFilters): void
 {
     $requestMethod = $_SERVER['REQUEST_METHOD'];
     $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    
+
+    // Handle subdirectory
+    $basePath = dirname($_SERVER['SCRIPT_NAME']);
+    if ($basePath !== '/' && $basePath !== '\\') {
+        $requestUri = substr($requestUri, strlen($basePath));
+    }
+
     // Убираем конечный слеш
     $requestUri = rtrim($requestUri, '/');
     if (empty($requestUri)) {
