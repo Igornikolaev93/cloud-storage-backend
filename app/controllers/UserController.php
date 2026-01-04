@@ -35,7 +35,13 @@ class UserController extends BaseController
             $user = User::verifyCredentials($email, $password);
             if ($user) {
                 Auth::login($user);
-                header('Location: /');
+
+                // Redirect admins to the admin dashboard
+                if (Auth::hasRole('admin')) {
+                    header('Location: /admin/users');
+                } else {
+                    header('Location: /');
+                }
                 exit;
             } else {
                 View::render('login', ['error' => 'Invalid credentials']);

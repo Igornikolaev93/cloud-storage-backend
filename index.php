@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+// Запускаем сессию в самом начале
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Включение отображения ошибок (только для разработки)
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
@@ -67,16 +72,16 @@ function handleRequest(array $routes, array $routeFilters): void
             $roles = is_array($roles) ? $roles : [$roles];
             foreach ($roles as $role) {
                 if ($role === 'guest' && App\Utils\Auth::check()) {
-                    App\Utils\Response::json(['error' => 'Unauthorized'], 401);
-                    return;
+                    header('Location: /');
+                    exit;
                 }
                 if ($role === 'auth' && !App\Utils\Auth::check()) {
-                    App\Utils\Response::json(['error' => 'Unauthorized'], 401);
-                    return;
+                    header('Location: /login');
+                    exit;
                 }
                 if ($role === 'admin' && !App\Utils\Auth::hasRole('admin')) {
-                    App\Utils\Response::json(['error' => 'Forbidden'], 403);
-                    return;
+                    header('Location: /');
+                    exit;
                 }
             }
         }
@@ -103,7 +108,6 @@ function handleRequest(array $routes, array $routeFilters): void
 
 // Запускаем обработку запроса
 try {
-    App\Utils\Auth::start();
     handleRequest($routes, $routeFilters);
 } catch (Throwable $e) {
     App\Utils\Response::json(['error' => 'Server error', 'message' => $e->getMessage()], 500);

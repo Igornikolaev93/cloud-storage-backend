@@ -6,21 +6,10 @@ namespace App\Utils;
 class Auth
 {
     /**
-     * Start session if not already started.
-     */
-    public static function start(): void
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-    }
-
-    /**
      * Log in a user.
      */
     public static function login(array $user): void
     {
-        self::start();
         // Regenerate session ID to prevent session fixation attacks
         session_regenerate_id(true);
         $_SESSION['user'] = [
@@ -37,7 +26,6 @@ class Auth
      */
     public static function logout(): void
     {
-        self::start();
         $_SESSION = [];
         session_destroy();
     }
@@ -47,7 +35,6 @@ class Auth
      */
     public static function check(): bool
     {
-        self::start();
         return isset($_SESSION['user']);
     }
 
@@ -56,7 +43,6 @@ class Auth
      */
     public static function user(): ?array
     {
-        self::start();
         return $_SESSION['user'] ?? null;
     }
 
