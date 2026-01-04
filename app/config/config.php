@@ -1,6 +1,26 @@
 <?php
 declare(strict_types=1);
 
+// Настройки безопасности сессии
+define('SESSION_NAME', 'CLOUD_STORAGE_SESSION');
+define('SESSION_LIFETIME', 3600); // 1 час
+
+// Инициализация сессии
+// Этот блок должен быть в начале, до любого вывода данных
+session_name(SESSION_NAME);
+session_set_cookie_params([
+    'lifetime' => SESSION_LIFETIME,
+    'path' => '/',
+    'domain' => '',
+    'secure' => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Режим отладки
 define('DEBUG_MODE', true);
 
@@ -10,8 +30,6 @@ define('APP_VERSION', '1.0.0');
 define('BASE_URL', 'http://cloud-storage.local');
 
 // Настройки безопасности
-define('SESSION_NAME', 'CLOUD_STORAGE_SESSION');
-define('SESSION_LIFETIME', 3600); // 1 час
 define('CSRF_TOKEN_LIFETIME', 1800); // 30 минут
 define('PASSWORD_HASH_ALGO', PASSWORD_DEFAULT);
 define('PASSWORD_HASH_COST', 12);
@@ -114,19 +132,4 @@ function formatFileSize(int $bytes): string
     $bytes /= pow(1024, $pow);
     
     return round($bytes, 2) . ' ' . $units[$pow];
-}
-
-// Инициализация сессии
-session_name(SESSION_NAME);
-session_set_cookie_params([
-    'lifetime' => SESSION_LIFETIME,
-    'path' => '/',
-    'domain' => '',
-    'secure' => isset($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
