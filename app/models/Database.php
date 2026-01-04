@@ -10,13 +10,18 @@ use Exception;
 class Database
 {
     private static ?PDO $connection = null;
-    
+
     /**
-     * Получить подключение к БД
+     * Get the database connection.
+     * Uses the DB_CONFIG constant defined in config.php.
      */
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
+            if (!defined('DB_CONFIG')) {
+                throw new Exception("Database configuration (DB_CONFIG) is not defined.");
+            }
+            
             $config = DB_CONFIG;
             
             try {
@@ -54,7 +59,7 @@ class Database
     }
     
     /**
-     * Начать транзакцию
+     * Start a new database transaction.
      */
     public static function beginTransaction(): bool
     {
@@ -62,7 +67,7 @@ class Database
     }
     
     /**
-     * Подтвердить транзакцию
+     * Commit the current database transaction.
      */
     public static function commit(): bool
     {
@@ -70,7 +75,7 @@ class Database
     }
     
     /**
-     * Откатить транзакцию
+     * Roll back the current database transaction.
      */
     public static function rollback(): bool
     {
@@ -78,7 +83,7 @@ class Database
     }
     
     /**
-     * Выполнить запрос с параметрами
+     * Execute a SQL query with parameters.
      */
     public static function query(string $sql, array $params = []): \PDOStatement
     {
@@ -88,7 +93,7 @@ class Database
     }
     
     /**
-     * Получить одну запись
+     * Fetch a single record from the database.
      */
     public static function fetchOne(string $sql, array $params = []): ?array
     {
@@ -98,7 +103,7 @@ class Database
     }
     
     /**
-     * Получить все записи
+     * Fetch all records from the database.
      */
     public static function fetchAll(string $sql, array $params = []): array
     {
@@ -107,7 +112,7 @@ class Database
     }
     
     /**
-     * Получить значение одного столбца
+     * Fetch a single column from the next row of a result set.
      */
     public static function fetchColumn(string $sql, array $params = []): mixed
     {
@@ -116,7 +121,7 @@ class Database
     }
     
     /**
-     * Вставить запись и вернуть ID
+     * Insert a new record into a table and return the last insert ID.
      */
     public static function insert(string $table, array $data): ?int
     {
@@ -130,16 +135,14 @@ class Database
             implode(', ', $placeholders)
         );
         
-        $stmt = self::getConnection()->prepare($sql);
-        $stmt->execute(array_values($data));
+        self::query($sql, array_values($data));
         
-        // For PostgreSQL, you might need to pass the sequence name, e.g., 'table_id_seq'
         $lastId = self::getConnection()->lastInsertId();
         return $lastId ? (int)$lastId : null;
     }
     
     /**
-     * Обновить запись
+     * Update records in a table.
      */
     public static function update(string $table, array $data, array $where): int
     {
@@ -164,14 +167,12 @@ class Database
             implode(' AND ', $whereParts)
         );
         
-        $stmt = self::getConnection()->prepare($sql);
-        $stmt->execute($params);
-        
+        $stmt = self::query($sql, $params);
         return $stmt->rowCount();
     }
     
     /**
-     * Удалить запись
+     * Delete records from a table.
      */
     public static function delete(string $table, array $where): int
     {
@@ -189,14 +190,12 @@ class Database
             implode(' AND ', $whereParts)
         );
         
-        $stmt = self::getConnection()->prepare($sql);
-        $stmt->execute($params);
-        
+        $stmt = self::query($sql, $params);
         return $stmt->rowCount();
     }
     
     /**
-     * Проверить существование записи
+     * Check if a record exists in a table.
      */
     public static function exists(string $table, array $conditions): bool
     {

@@ -1,12 +1,10 @@
 <?php
+require __DIR__ . '/app/config/config.php';
 require __DIR__ . '/app/models/Database.php';
 require __DIR__ . '/app/models/User.php';
 
-// Загружаем конфигурацию
-$config = require __DIR__ . '/app/config/config.php';
-
-// Инициализируем базу данных
-App\Models\Database::init($config['db']);
+use App\Models\Database;
+use App\Models\User;
 
 // Данные для нового администратора
 $adminData = [
@@ -18,12 +16,15 @@ $adminData = [
 ];
 
 try {
+    // Устанавливаем соединение с базой данных, используя константу DB_CONFIG
+    Database::getConnection();
+
     // Проверяем, не существует ли уже такой пользователь
-    if (App\Models\User::findByEmail($adminData['email'])) {
+    if (User::findByEmail($adminData['email'])) {
         echo "Administrator account already exists.\n";
     } else {
         // Создаем нового пользователя
-        $userId = App\Models\User::create($adminData);
+        $userId = User::create($adminData);
         if ($userId) {
             echo "Administrator account created successfully!\n";
             echo "Email: " . $adminData['email'] . "\n";
