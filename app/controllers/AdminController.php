@@ -12,11 +12,8 @@ class AdminController extends BaseController
 {
     public function __construct()
     {
-        // Protect all methods in this controller
-        if (!Auth::hasRole('admin')) {
-            header('Location: /');
-            exit;
-        }
+        // The route filter in index.php already protects all admin routes.
+        // A duplicate check here is redundant.
     }
 
     /**

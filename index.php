@@ -1,11 +1,6 @@
 <?php
 declare(strict_types=1);
 
-// Запускаем сессию в самом начале
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Включение отображения ошибок (только для разработки)
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
