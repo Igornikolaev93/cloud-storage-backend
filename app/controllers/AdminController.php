@@ -69,4 +69,24 @@ class AdminController extends BaseController
             ]);
         }
     }
+
+    /**
+     * Handle user deletion.
+     */
+    public function deleteUser(int $userId): void
+    {
+        try {
+            // Prevent an admin from deleting their own account
+            if ($userId === Auth::id()) {
+                throw new Exception('You cannot delete your own account.');
+            }
+
+            User::delete($userId);
+            header('Location: /admin/users?message=User deleted successfully');
+            exit;
+        } catch (Exception $e) {
+            header('Location: /admin/users?error=' . urlencode($e->getMessage()));
+            exit;
+        }
+    }
 }

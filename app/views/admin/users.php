@@ -3,11 +3,11 @@
 <div class="container">
     <h2>User Management</h2>
 
-    <?php if (isset($message)): ?>
-        <div class="alert alert-success"><?php echo $message; ?></div>
+    <?php if (isset($_GET['message'])): ?>
+        <div class="alert alert-success"><?php echo htmlspecialchars($_GET['message']); ?></div>
     <?php endif; ?>
-    <?php if (isset($error)): ?>
-        <div class="alert alert-danger"><?php echo $error; ?></div>
+    <?php if (isset($_GET['error'])): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($_GET['error']); ?></div>
     <?php endif; ?>
 
     <table class="table">
@@ -36,6 +36,9 @@
                                 <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                        </form>
+                        <form action="/admin/users/<?php echo $user['id']; ?>/delete" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     </td>
                 </tr>

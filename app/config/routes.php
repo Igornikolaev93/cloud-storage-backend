@@ -32,6 +32,9 @@ $routes = [
     '/admin/users/{id}/role' => [
         'POST' => 'AdminController@changeRole'
     ],
+    '/admin/users/{id}/delete' => [
+        'POST' => 'AdminController@deleteUser'
+    ],
 ];
 
 $routeFilters = [
