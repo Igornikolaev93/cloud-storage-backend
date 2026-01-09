@@ -97,8 +97,8 @@ function handleRequest(array $routes, array $routeFilters): void
         return;
     }
 
-    // Передаем параметры в метод контроллера
-    call_user_func_array([$controller, $methodName], $params);
+    // Pass parameters to the controller method positionally.
+    call_user_func_array([$controller, $methodName], array_values($params));
 }
 
 // Запускаем обработку запроса
