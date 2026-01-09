@@ -11,34 +11,42 @@ use Exception;
 
 class FileController extends BaseController
 {
+    private function renderFilesPage(array $data = []): void
+    {
+        $userId = Auth::id();
+        $files = [];
+        $sharedFiles = [];
+
+        try {
+            if ($userId) {
+                $files = File::findByUser($userId);
+                foreach ($files as &$file) {
+                    $file['shared_with'] = Share::getUsersForFile((int)$file['id']);
+                }
+                $sharedFiles = Share::getFilesForUser($userId);
+            }
+        } catch (Exception $e) {
+            $data['error'] = 'Could not fetch files: ' . $e->getMessage();
+        }
+
+        $user = Auth::user();
+        View::render('files', array_merge([
+            'files' => $files,
+            'sharedFiles' => $sharedFiles,
+            'fullName' => $user ? $user['first_name'] . ' ' . $user['last_name'] : ''
+        ], $data));
+    }
+
     /**
      * List all files for the authenticated user and show the files page.
      */
     public function list(): void
     {
-        $userId = Auth::id();
-        if (!$userId) {
+        if (!Auth::id()) {
             header('Location: /login');
             exit;
         }
-
-        try {
-            $user = Auth::user();
-            $files = File::findByUser($userId);
-            $sharedFiles = Share::getFilesForUser($userId);
-
-            foreach ($files as &$file) {
-                $file['shared_with'] = Share::getUsersForFile((int)$file['id']);
-            }
-
-            View::render('files', [
-                'files' => $files,
-                'sharedFiles' => $sharedFiles,
-                'fullName' => $user['first_name'] . ' ' . $user['last_name']
-            ]);
-        } catch (Exception $e) {
-            View::render('files', ['error' => 'Could not fetch files: ' . $e->getMessage()]);
-        }
+        $this->renderFilesPage();
     }
 
     /**
@@ -56,20 +64,17 @@ class FileController extends BaseController
             $fileName = $_FILES['file']['name'];
             
             try {
-                // In a real application, you would move the uploaded file to a secure location.
-                // For this example, we'll just add a record to the database.
                 $fileId = File::create($userId, $fileName, null);
                 if ($fileId) {
                     header('Location: /');
                     exit;
-                } else {
-                    View::render('files', ['error' => 'Failed to upload file']);
                 }
+                $this->renderFilesPage(['error' => 'Failed to upload file.']);
             } catch (Exception $e) {
-                View::render('files', ['error' => $e->getMessage()]);
+                $this->renderFilesPage(['error' => $e->getMessage()]);
             }
         } else {
-            View::render('files', ['error' => 'No file uploaded or an error occurred']);
+            $this->renderFilesPage(['error' => 'No file uploaded or an error occurred.']);
         }
     }
 
@@ -86,15 +91,13 @@ class FileController extends BaseController
         }
 
         try {
-            $deleted = File::remove($id, $userId);
-            if ($deleted) {
+            if (File::remove($id, $userId)) {
                 header('Location: /');
                 exit;
-            } else {
-                View::render('files', ['error' => 'File not found or permission denied']);
             }
+            $this->renderFilesPage(['error' => 'File not found or permission denied.']);
         } catch (Exception $e) {
-            View::render('files', ['error' => 'Could not remove file: ' . $e->getMessage()]);
+            $this->renderFilesPage(['error' => 'Could not remove file: ' . $e->getMessage()]);
         }
     }
 }
