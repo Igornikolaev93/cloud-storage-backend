@@ -25,6 +25,14 @@ $routes = [
         'GET' => 'FileController@remove'
     ],
 
+    // Share routes
+    '/share/add/{fileId}' => [
+        'POST' => 'ShareController@share'
+    ],
+    '/share/remove/{fileId}/{userId}' => [
+        'GET' => 'ShareController@unshare'
+    ],
+
     // Admin routes
     '/admin/users' => [
         'GET' => 'AdminController@users'
@@ -46,6 +54,7 @@ $routeFilters = [
     '/' => 'auth',
     '/logout' => 'auth',
     '/files/*' => 'auth',
+    '/share/*' => 'auth',
 
     // Admin routes
     '/admin/*' => 'admin',

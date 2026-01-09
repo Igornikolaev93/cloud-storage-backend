@@ -59,6 +59,15 @@ class Database
     }
     
     /**
+     * Get the correct quote character for the database driver.
+     */
+    private static function getQuoteChar(): string
+    {
+        $driver = self::getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
+        return $driver === 'pgsql' ? '"' : '`';
+    }
+
+    /**
      * Start a new database transaction.
      */
     public static function beginTransaction(): bool
@@ -88,16 +97,7 @@ class Database
     public static function query(string $sql, array $params = []): \PDOStatement
     {
         $stmt = self::getConnection()->prepare($sql);
-        
-        foreach ($params as $key => $value) {
-            if (is_int($key)) {
-                $stmt->bindValue($key + 1, $value);
-            } else {
-                $stmt->bindValue(':' . $key, $value);
-            }
-        }
-        
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt;
     }
     
@@ -134,13 +134,15 @@ class Database
      */
     public static function insert(string $table, array $data): ?int
     {
+        $q = self::getQuoteChar();
         $columns = array_keys($data);
+        $quotedColumns = array_map(function($col) use ($q) { return $q . $col . $q; }, $columns);
         $placeholders = array_map(function($col) { return ':' . $col; }, $columns);
         
         $sql = sprintf(
             'INSERT INTO %s (%s) VALUES (%s)',
             $table,
-            implode(', ', $columns),
+            implode(', ', $quotedColumns),
             implode(', ', $placeholders)
         );
         
@@ -155,17 +157,18 @@ class Database
      */
     public static function update(string $table, array $data, array $where): int
     {
+        $q = self::getQuoteChar();
         $setParts = [];
         $params = [];
         
         foreach ($data as $column => $value) {
-            $setParts[] = "`$column` = :$column";
-            $params[$column] = $value;
+            $setParts[] = "$q$column$q = :s_$column";
+            $params["s_$column"] = $value;
         }
         
         $whereParts = [];
         foreach ($where as $column => $value) {
-            $whereParts[] = "`$column` = :w_$column";
+            $whereParts[] = "$q$column$q = :w_$column";
             $params["w_$column"] = $value;
         }
         
@@ -185,11 +188,12 @@ class Database
      */
     public static function delete(string $table, array $where): int
     {
+        $q = self::getQuoteChar();
         $whereParts = [];
         $params = [];
         
         foreach ($where as $column => $value) {
-            $whereParts[] = "`$column` = :$column";
+            $whereParts[] = "$q$column$q = :$column";
             $params[$column] = $value;
         }
         
@@ -208,11 +212,12 @@ class Database
      */
     public static function exists(string $table, array $conditions): bool
     {
+        $q = self::getQuoteChar();
         $whereParts = [];
         $params = [];
         
         foreach ($conditions as $column => $value) {
-            $whereParts[] = "`$column` = :$column";
+            $whereParts[] = "$q$column$q = :$column";
             $params[$column] = $value;
         }
         

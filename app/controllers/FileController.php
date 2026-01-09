@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\File;
+use App\Models\Share;
 use App\Utils\Auth;
 use App\Utils\View;
 use Exception;
@@ -24,8 +25,15 @@ class FileController extends BaseController
         try {
             $user = Auth::user();
             $files = File::findByUser($userId);
+            $sharedFiles = Share::getFilesForUser($userId);
+
+            foreach ($files as &$file) {
+                $file['shared_with'] = Share::getUsersForFile((int)$file['id']);
+            }
+
             View::render('files', [
                 'files' => $files,
+                'sharedFiles' => $sharedFiles,
                 'fullName' => $user['first_name'] . ' ' . $user['last_name']
             ]);
         } catch (Exception $e) {
