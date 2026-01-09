@@ -76,8 +76,9 @@ class FileController extends BaseController
     /**
      * Remove a file.
      */
-    public function remove(int $id): void
+    public function remove($id): void
     {
+        $id = (int) $id;
         $userId = Auth::id();
         if (!$userId) {
             header('Location: /login');

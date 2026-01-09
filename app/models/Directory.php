@@ -36,12 +36,12 @@ class Directory
      */
     public static function findById(int $id, int $userId): ?array
     {
-        $sql = "SELECT * FROM directories WHERE id = ? AND user_id = ?";
-        $directory = Database::fetchOne($sql, [$id, $userId]);
+        $sql = "SELECT * FROM directories WHERE id = :id AND user_id = :user_id";
+        $directory = Database::fetchOne($sql, ['id' => $id, 'user_id' => $userId]);
 
         if ($directory) {
-            $sql = "SELECT * FROM files WHERE directory_id = ? AND user_id = ?";
-            $directory['files'] = Database::fetchAll($sql, [$id, $userId]);
+            $sql = "SELECT * FROM files WHERE directory_id = :directory_id AND user_id = :user_id";
+            $directory['files'] = Database::fetchAll($sql, ['directory_id' => $id, 'user_id' => $userId]);
         }
 
         return $directory;

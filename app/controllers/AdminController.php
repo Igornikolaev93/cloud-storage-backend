@@ -38,8 +38,9 @@ class AdminController extends BaseController
     /**
      * Handle user role change.
      */
-    public function changeRole(int $userId): void
+    public function changeRole($userId): void
     {
+        $userId = (int) $userId;
         $newRole = $_POST['role'] ?? '';
 
         if (empty($newRole)) {
@@ -70,12 +71,19 @@ class AdminController extends BaseController
     /**
      * Handle user deletion.
      */
-    public function deleteUser(int $userId): void
+    public function deleteUser($userId): void
     {
+        $userId = (int) $userId;
         try {
             // Prevent an admin from deleting their own account
             if ($userId === Auth::id()) {
                 throw new Exception('You cannot delete your own account.');
+            }
+
+            // Add a confirmation step to prevent accidental deletions
+            if (!isset($_POST['confirm'])) {
+                View::render('admin/delete_confirm', ['userId' => $userId]);
+                return;
             }
 
             User::delete($userId);

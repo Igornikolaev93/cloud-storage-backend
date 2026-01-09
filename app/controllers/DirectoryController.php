@@ -62,7 +62,7 @@ class DirectoryController extends BaseController
         }
 
         try {
-            $renamed = Directory::rename($directoryId, $userId, $newName);
+            $renamed = Directory::rename((int)$directoryId, $userId, $newName);
             if ($renamed) {
                 Response::json(['message' => 'Directory renamed successfully']);
             } else {
@@ -76,8 +76,9 @@ class DirectoryController extends BaseController
     /**
      * Get a specific directory by ID, including its files.
      */
-    public function get(int $id): void
+    public function get($id): void
     {
+        $id = (int) $id;
         $userId = Auth::id();
         if (!$userId) {
             Response::json(['error' => 'Unauthorized'], 401);
@@ -99,8 +100,9 @@ class DirectoryController extends BaseController
     /**
      * Delete a directory.
      */
-    public function delete(int $id): void
+    public function delete($id): void
     {
+        $id = (int) $id;
         $userId = Auth::id();
         if (!$userId) {
             Response::json(['error' => 'Unauthorized'], 401);

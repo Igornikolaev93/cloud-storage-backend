@@ -26,8 +26,8 @@ class File
      */
     public static function findByUser(int $userId): array
     {
-        $sql = "SELECT f.* FROM files f LEFT JOIN file_shares fs ON f.id = fs.file_id WHERE f.user_id = ? OR fs.user_id = ?";
-        return Database::fetchAll($sql, [$userId, $userId]);
+        $sql = "SELECT f.* FROM files f LEFT JOIN file_shares fs ON f.id = fs.file_id WHERE f.user_id = :user_id OR fs.user_id = :user_id";
+        return Database::fetchAll($sql, ['user_id' => $userId]);
     }
 
     /**
@@ -35,8 +35,8 @@ class File
      */
     public static function findById(int $id, int $userId): ?array
     {
-        $sql = "SELECT f.* FROM files f LEFT JOIN file_shares fs ON f.id = fs.file_id WHERE f.id = ? AND (f.user_id = ? OR fs.user_id = ?)";
-        return Database::fetchOne($sql, [$id, $userId, $userId]);
+        $sql = "SELECT f.* FROM files f LEFT JOIN file_shares fs ON f.id = fs.file_id WHERE f.id = :id AND (f.user_id = :user_id OR fs.user_id = :user_id)";
+        return Database::fetchOne($sql, ['id' => $id, 'user_id' => $userId]);
     }
 
     /**
@@ -69,8 +69,8 @@ class File
             return null;
         }
 
-        $sql = "SELECT u.id, u.email, u.first_name, u.last_name FROM users u JOIN file_shares fs ON u.id = fs.user_id WHERE fs.file_id = ?";
-        return Database::fetchAll($sql, [$id]);
+        $sql = "SELECT u.id, u.email, u.first_name, u.last_name FROM users u JOIN file_shares fs ON u.id = fs.user_id WHERE fs.file_id = :file_id";
+        return Database::fetchAll($sql, ['file_id' => $id]);
     }
 
     /**

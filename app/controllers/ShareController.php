@@ -14,8 +14,9 @@ class ShareController extends BaseController
     /**
      * Share a file with a user.
      */
-    public function share(int $fileId)
+    public function share($fileId)
     {
+        $fileId = (int) $fileId;
         $currentUser = Auth::getUser();
         if (!$currentUser) {
             Response::redirect('/login');
@@ -45,8 +46,10 @@ class ShareController extends BaseController
     /**
      * Unshare a file from a user.
      */
-    public function unshare(int $fileId, int $userId)
+    public function unshare($fileId, $userId)
     {
+        $fileId = (int) $fileId;
+        $userId = (int) $userId;
         $currentUser = Auth::getUser();
         if (!$currentUser) {
             Response::redirect('/login');

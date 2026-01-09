@@ -52,9 +52,9 @@ class User
     public static function findById(int $id): ?array
     {
         $sql = "SELECT id, email, first_name, last_name, role, created_at, updated_at 
-                FROM users WHERE id = ?";
+                FROM users WHERE id = :id";
         
-        return Database::fetchOne($sql, [$id]);
+        return Database::fetchOne($sql, ['id' => $id]);
     }
     
     /**
@@ -63,9 +63,9 @@ class User
     public static function findByEmail(string $email): ?array
     {
         $sql = "SELECT id, email, password_hash, first_name, last_name, role 
-                FROM users WHERE email = ?";
+                FROM users WHERE email = :email";
         
-        return Database::fetchOne($sql, [strtolower(trim($email))]);
+        return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
     }
     
     /**
@@ -135,9 +135,9 @@ class User
         $sql = "SELECT id, email, first_name, last_name, role, created_at 
                 FROM users 
                 ORDER BY created_at DESC 
-                LIMIT ? OFFSET ?";
+                LIMIT :limit OFFSET :offset";
         
-        $users = Database::fetchAll($sql, [$perPage, $offset]);
+        $users = Database::fetchAll($sql, ['limit' => $perPage, 'offset' => $offset]);
         
         // Получаем общее количество
         $total = Database::fetchColumn("SELECT COUNT(*) FROM users");
@@ -160,11 +160,11 @@ class User
     {
         $sql = "SELECT id, email, first_name, last_name 
                 FROM users 
-                WHERE email LIKE ? OR first_name LIKE ? OR last_name LIKE ?
-                LIMIT ?";
+                WHERE email LIKE :query OR first_name LIKE :query OR last_name LIKE :query
+                LIMIT :limit";
         
         $searchTerm = "%$query%";
-        return Database::fetchAll($sql, [$searchTerm, $searchTerm, $searchTerm, $limit]);
+        return Database::fetchAll($sql, ['query' => $searchTerm, 'limit' => $limit]);
     }
     
     /**
@@ -172,30 +172,7 @@ class User
      */
     public static function delete(int $userId): bool
     {
-        // Начинаем транзакцию, так как нужно удалить связанные данные
-        Database::beginTransaction();
-        
-        try {
-            // Удаляем файлы пользователя
-            $files = Database::fetchAll("SELECT id FROM files WHERE user_id = ?", [$userId]);
-            foreach ($files as $file) {
-                Database::delete('file_shares', ['file_id' => $file['id']]);
-            }
-            
-            Database::delete('files', ['user_id' => $userId]);
-            Database::delete('folders', ['user_id' => $userId]);
-            Database::delete('sessions', ['user_id' => $userId]);
-            
-            // Удаляем самого пользователя
-            $deleted = Database::delete('users', ['id' => $userId]) > 0;
-            
-            Database::commit();
-            return $deleted;
-            
-        } catch (Exception $e) {
-            Database::rollback();
-            throw $e;
-        }
+        return Database::delete('users', ['id' => $userId]) > 0;
     }
     
     /**
@@ -242,9 +219,9 @@ class User
         $hashedToken = hash('sha256', $token);
         
         $sql = "SELECT user_id FROM password_reset_tokens 
-                WHERE token = ? AND expires_at > NOW()";
+                WHERE token = :token AND expires_at > NOW()";
         
-        $result = Database::fetchOne($sql, [$hashedToken]);
+        $result = Database::fetchOne($sql, ['token' => $hashedToken]);
         
         return $result ? (int)$result['user_id'] : null;
     }
