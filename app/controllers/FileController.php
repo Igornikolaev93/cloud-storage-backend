@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Models\File;
 use App\Models\Share;
 use App\Utils\Auth;
+use App\Utils\Response;
 use App\Utils\View;
 use Exception;
 
@@ -86,18 +87,18 @@ class FileController extends BaseController
         $id = (int) $id;
         $userId = Auth::id();
         if (!$userId) {
-            header('Location: /login');
-            exit;
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
         }
 
         try {
             if (File::remove($id, $userId)) {
-                header('Location: /');
-                exit;
+                Response::json(['message' => 'File deleted successfully']);
+                return;
             }
-            $this->renderFilesPage(['error' => 'File not found or permission denied.']);
+            Response::json(['error' => 'File not found or permission denied'], 404);
         } catch (Exception $e) {
-            $this->renderFilesPage(['error' => 'Could not remove file: ' . $e->getMessage()]);
+            Response::json(['error' => 'Could not remove file: ' . $e->getMessage()], 500);
         }
     }
 }

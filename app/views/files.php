@@ -23,9 +23,9 @@
     <h3>My Files</h3>
     <ul class="list-group">
         <?php foreach ($files as $file): ?>
-            <li class="list-group-item">
+            <li class="list-group-item" id="file-<?php echo $file['id']; ?>">
                 <?php echo htmlspecialchars($file['name']); ?>
-                <a href="/files/remove/<?php echo $file['id']; ?>" class="btn btn-danger btn-sm float-right">Delete</a>
+                <a href="/files/remove/<?php echo $file['id']; ?>" class="btn btn-danger btn-sm float-right delete-file-btn">Delete</a>
                 <button class="btn btn-info btn-sm float-right mr-2" data-toggle="modal" data-target="#shareModal-<?php echo $file['id']; ?>">Share</button>
 
                 <!-- Share Modal -->
@@ -75,5 +75,37 @@
         <?php endforeach; ?>
     </ul>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteButtons = document.querySelectorAll('.delete-file-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            const url = this.getAttribute('href');
+            const fileId = url.split('/').pop();
+            
+            if (confirm('Are you sure you want to delete this file?')) {
+                fetch(url, {
+                    method: 'DELETE',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        // Remove the file item from the list
+                        const fileItem = document.getElementById('file-' + fileId);
+                        if (fileItem) {
+                            fileItem.remove();
+                        }
+                    } else if (data.error) {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    });
+});
+</script>
 
 <?php include 'partials/footer.php'; ?>

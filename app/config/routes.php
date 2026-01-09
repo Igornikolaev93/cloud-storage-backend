@@ -22,7 +22,7 @@ $routes = [
         'POST' => 'FileController@add'
     ],
     '/files/remove/{id}' => [
-        'GET' => 'FileController@remove'
+        'DELETE' => 'FileController@remove'
     ],
 
     // Share routes
