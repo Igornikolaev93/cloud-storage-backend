@@ -37,7 +37,7 @@
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Update</button>
                         </form>
-                        <form action="/admin/users/<?php echo $user['id']; ?>/delete" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                        <form action="/admin/users/delete/<?php echo $user['id']; ?>" method="post" style="display: inline;">
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     </td>
