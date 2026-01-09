@@ -24,6 +24,21 @@ function handleRequest(array $routes, array $routeFilters): void
         $requestUri = substr($requestUri, strlen($basePath));
     }
 
+    // Serve static files from the public directory
+    if (strpos($requestUri, '/css/') === 0 || strpos($requestUri, '/js/') === 0) {
+        $filePath = __DIR__ . '/public' . $requestUri;
+        if (file_exists($filePath)) {
+            $mimeType = mime_content_type($filePath);
+            header("Content-Type: {$mimeType}");
+            readfile($filePath);
+            exit;
+        } else {
+            http_response_code(404);
+            echo "File not found";
+            exit;
+        }
+    }
+    
     // Убираем конечный слеш
     $requestUri = rtrim($requestUri, '/');
     if (empty($requestUri)) {
