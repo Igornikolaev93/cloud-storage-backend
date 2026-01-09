@@ -193,8 +193,9 @@ class Database
         $params = [];
         
         foreach ($where as $column => $value) {
-            $whereParts[] = "$q$column$q = :$column";
-            $params[$column] = $value;
+            $paramName = 'w_' . $column;
+            $whereParts[] = "$q$column$q = :$paramName";
+            $params[$paramName] = $value;
         }
         
         $sql = sprintf(
