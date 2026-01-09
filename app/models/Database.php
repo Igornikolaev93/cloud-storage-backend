@@ -88,7 +88,16 @@ class Database
     public static function query(string $sql, array $params = []): \PDOStatement
     {
         $stmt = self::getConnection()->prepare($sql);
-        $stmt->execute($params);
+        
+        foreach ($params as $key => $value) {
+            if (is_int($key)) {
+                $stmt->bindValue($key + 1, $value);
+            } else {
+                $stmt->bindValue(':' . $key, $value);
+            }
+        }
+        
+        $stmt->execute();
         return $stmt;
     }
     
@@ -126,7 +135,7 @@ class Database
     public static function insert(string $table, array $data): ?int
     {
         $columns = array_keys($data);
-        $placeholders = array_fill(0, count($columns), '?');
+        $placeholders = array_map(function($col) { return ':' . $col; }, $columns);
         
         $sql = sprintf(
             'INSERT INTO %s (%s) VALUES (%s)',
@@ -135,7 +144,7 @@ class Database
             implode(', ', $placeholders)
         );
         
-        self::query($sql, array_values($data));
+        self::query($sql, $data);
         
         $lastId = self::getConnection()->lastInsertId();
         return $lastId ? (int)$lastId : null;
@@ -150,14 +159,14 @@ class Database
         $params = [];
         
         foreach ($data as $column => $value) {
-            $setParts[] = "$column = ?";
-            $params[] = $value;
+            $setParts[] = "`$column` = :$column";
+            $params[$column] = $value;
         }
         
         $whereParts = [];
         foreach ($where as $column => $value) {
-            $whereParts[] = "$column = ?";
-            $params[] = $value;
+            $whereParts[] = "`$column` = :w_$column";
+            $params["w_$column"] = $value;
         }
         
         $sql = sprintf(
@@ -180,8 +189,8 @@ class Database
         $params = [];
         
         foreach ($where as $column => $value) {
-            $whereParts[] = "$column = ?";
-            $params[] = $value;
+            $whereParts[] = "`$column` = :$column";
+            $params[$column] = $value;
         }
         
         $sql = sprintf(
@@ -203,8 +212,8 @@ class Database
         $params = [];
         
         foreach ($conditions as $column => $value) {
-            $whereParts[] = "$column = ?";
-            $params[] = $value;
+            $whereParts[] = "`$column` = :$column";
+            $params[$column] = $value;
         }
         
         $sql = sprintf(
