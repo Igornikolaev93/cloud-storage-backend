@@ -40,7 +40,7 @@ $routes = [
     '/admin/users/{id}/role' => [
         'POST' => 'AdminController@changeRole'
     ],
-    '/admin/users/{id}/delete' => [
+    '/admin/users/delete/{id}' => [
         'POST' => 'AdminController@deleteUser'
     ],
 ];

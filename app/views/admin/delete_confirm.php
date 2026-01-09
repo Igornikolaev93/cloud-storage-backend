@@ -1,20 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirm Deletion</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Confirm Deletion</h1>
-        <p>Are you sure you want to delete this user? This action cannot be undone.</p>
-        <form action="/admin/users/delete/<?= $userId ?>" method="post">
-            <input type="hidden" name="confirm" value="true">
-            <button type="submit" class="btn btn-danger">Delete</button>
-            <a href="/admin/users" class="btn">Cancel</a>
-        </form>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/../partials/header.php'; ?>
+
+<div class="container">
+    <h2>Confirm Deletion</h2>
+    <p>Are you sure you want to delete this user?</p>
+    
+    <form action="/admin/users/delete/<?php echo $userId; ?>" method="post">
+        <input type="hidden" name="confirm" value="yes">
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<?php include __DIR__ . '/../partials/footer.php'; ?>
