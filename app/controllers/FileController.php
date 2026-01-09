@@ -51,6 +51,30 @@ class FileController extends BaseController
     }
 
     /**
+     * Get information about a specific file.
+     */
+    public function get($id): void
+    {
+        $id = (int) $id;
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        try {
+            $file = File::findById($id, $userId);
+            if ($file) {
+                Response::json($file);
+                return;
+            }
+            Response::json(['error' => 'File not found or permission denied'], 404);
+        } catch (Exception $e) {
+            Response::json(['error' => 'Could not get file: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Add a new file from an upload.
      */
     public function add(): void
@@ -76,6 +100,37 @@ class FileController extends BaseController
             }
         } else {
             $this->renderFilesPage(['error' => 'No file uploaded or an error occurred.']);
+        }
+    }
+
+    /**
+     * Rename a file.
+     */
+    public function rename(): void
+    {
+        $userId = Auth::id();
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $id = (int) ($data['id'] ?? 0);
+        $newName = (string) ($data['newName'] ?? '');
+
+        if (!$id || !$newName) {
+            Response::json(['error' => 'Invalid input'], 400);
+            return;
+        }
+
+        try {
+            if (File::rename($id, $newName, $userId)) {
+                Response::json(['message' => 'File renamed successfully']);
+                return;
+            }
+            Response::json(['error' => 'File not found or permission denied'], 404);
+        } catch (Exception $e) {
+            Response::json(['error' => 'Could not rename file: ' . $e->getMessage()], 500);
         }
     }
 

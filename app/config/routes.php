@@ -18,11 +18,34 @@ $routes = [
     ],
 
     // File routes
+    '/files/list' => [
+        'GET' => 'FileController@list'
+    ],
+    '/files/get/{id}' => [
+        'GET' => 'FileController@get'
+    ],
     '/files/add' => [
         'POST' => 'FileController@add'
     ],
+    '/files/rename' => [
+        'PUT' => 'FileController@rename'
+    ],
     '/files/remove/{id}' => [
         'DELETE' => 'FileController@remove'
+    ],
+
+    // Directory routes
+    '/directories/add' => [
+        'POST' => 'DirectoryController@add'
+    ],
+    '/directories/rename' => [
+        'PUT' => 'DirectoryController@rename'
+    ],
+    '/directories/get/{id}' => [
+        'GET' => 'DirectoryController@get'
+    ],
+    '/directories/delete/{id}' => [
+        'DELETE' => 'DirectoryController@delete'
     ],
 
     // Share routes
@@ -54,6 +77,7 @@ $routeFilters = [
     '/' => 'auth',
     '/logout' => 'auth',
     '/files/*' => 'auth',
+    '/directories/*' => 'auth',
     '/share/*' => 'auth',
 
     // Admin routes

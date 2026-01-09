@@ -21,8 +21,8 @@ class DirectoryController extends BaseController
             return;
         }
 
-        $data = $this->getRequestData();
-        $name = $data['name'] ?? '';
+        $data = json_decode(file_get_contents('php://input'), true);
+        $name = (string) ($data['name'] ?? '');
 
         if (empty($name)) {
             Response::json(['error' => 'Directory name is required'], 400);
@@ -52,9 +52,9 @@ class DirectoryController extends BaseController
             return;
         }
 
-        $data = $this->getRequestData();
-        $directoryId = $data['id'] ?? 0;
-        $newName = $data['name'] ?? '';
+        $data = json_decode(file_get_contents('php://input'), true);
+        $directoryId = (int) ($data['id'] ?? 0);
+        $newName = (string) ($data['name'] ?? '');
 
         if (!$directoryId || !$newName) {
             Response::json(['error' => 'Directory ID and new name are required'], 400);
@@ -62,7 +62,7 @@ class DirectoryController extends BaseController
         }
 
         try {
-            $renamed = Directory::rename((int)$directoryId, $userId, $newName);
+            $renamed = Directory::rename($directoryId, $userId, $newName);
             if ($renamed) {
                 Response::json(['message' => 'Directory renamed successfully']);
             } else {
