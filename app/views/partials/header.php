@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <?php
         $basePath = dirname($_SERVER['SCRIPT_NAME']);
-        if ($basePath === '/' || $basePath === '\') {
+        if ($basePath === '/' || $basePath === '\\') {
             $basePath = '';
         }
     ?>
