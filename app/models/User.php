@@ -8,230 +8,75 @@ use PDO;
 
 class User
 {
-    private int $id;
-    private string $email;
-    private string $passwordHash;
-    private string $firstName;
-    private string $lastName;
-    private string $role;
-    private string $createdAt;
-    private string $updatedAt;
-    
-    /**
-     * Создать пользователя
-     */
     public static function create(array $data): ?int
     {
-        $required = ['email', 'password', 'first_name', 'last_name'];
-        
-        foreach ($required as $field) {
-            if (empty($data[$field])) {
-                throw new Exception("Missing required field: $field");
-            }
-        }
-        
-        // Проверяем уникальность email
         if (self::findByEmail($data['email'])) {
             throw new Exception("Email already exists");
         }
-        
+
         $userData = [
             'email' => strtolower(trim($data['email'])),
-            'password_hash' => password_hash($data['password'], PASSWORD_HASH_ALGO, ['cost' => PASSWORD_HASH_COST]),
+            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
             'first_name' => trim($data['first_name']),
             'last_name' => trim($data['last_name']),
             'role' => $data['role'] ?? 'user'
         ];
-        
+
         return Database::insert('users', $userData);
     }
-    
-    /**
-     * Найти пользователя по ID
-     */
+
     public static function findById(int $id): ?array
     {
         $sql = "SELECT id, email, first_name, last_name, role, created_at, updated_at 
                 FROM users WHERE id = :id";
-        
+
         return Database::fetchOne($sql, ['id' => $id]);
     }
-    
-    /**
-     * Найти пользователя по email
-     */
+
     public static function findByEmail(string $email): ?array
     {
-        $sql = "SELECT id, email, password_hash, first_name, last_name, role 
-                FROM users WHERE email = :email";
-        
+        $sql = "SELECT * FROM users WHERE email = :email";
         return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
     }
-    
-    /**
-     * Проверить учетные данные
-     */
-    public static function verifyCredentials(string $email, string $password): ?array
-    {
-        $user = self::findByEmail($email);
-        
-        if ($user && password_verify($password, $user['password_hash'])) {
-            unset($user['password_hash']);
-            return $user;
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Обновить профиль пользователя
-     */
-    public static function updateProfile(int $userId, array $data): bool
-    {
-        $allowedFields = ['first_name', 'last_name', 'email'];
-        $updateData = [];
-        
-        foreach ($allowedFields as $field) {
-            if (isset($data[$field]) && !empty(trim($data[$field]))) {
-                $updateData[$field] = trim($data[$field]);
-            }
-        }
-        
-        if (empty($updateData)) {
-            return false;
-        }
-        
-        // Если обновляется email, проверяем уникальность
-        if (isset($updateData['email'])) {
-            $existing = self::findByEmail($updateData['email']);
-            if ($existing && $existing['id'] != $userId) {
-                throw new Exception("Email already exists");
-            }
-        }
-        
-        return Database::update('users', $updateData, ['id' => $userId]) > 0;
-    }
-    
-    /**
-     * Обновить пароль
-     */
+
     public static function updatePassword(int $userId, string $newPassword): bool
     {
-        $passwordHash = password_hash($newPassword, PASSWORD_HASH_ALGO, ['cost' => PASSWORD_HASH_COST]);
-        
-        return Database::update('users', 
-            ['password_hash' => $passwordHash], 
+        $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+
+        return Database::update('users',
+            ['password' => $passwordHash],
             ['id' => $userId]
         ) > 0;
     }
-    
-    /**
-     * Получить список пользователей (с пагинацией)
-     */
-    public static function getList(int $page = 1, int $perPage = 20): array
+
+    public static function createPasswordResetToken(string $email, string $token): void
     {
-        $offset = ($page - 1) * $perPage;
-        
-        $sql = "SELECT id, email, first_name, last_name, role, created_at 
-                FROM users 
-                ORDER BY created_at DESC 
-                LIMIT :limit OFFSET :offset";
-        
-        $users = Database::fetchAll($sql, ['limit' => $perPage, 'offset' => $offset]);
-        
-        // Получаем общее количество
-        $total = Database::fetchColumn("SELECT COUNT(*) FROM users");
-        
-        return [
-            'users' => $users,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => (int)$total,
-                'total_pages' => ceil($total / $perPage)
-            ]
-        ];
-    }
-    
-    /**
-     * Поиск пользователей
-     */
-    public static function search(string $query, int $limit = 10): array
-    {
-        $sql = "SELECT id, email, first_name, last_name 
-                FROM users 
-                WHERE email LIKE :query OR first_name LIKE :query OR last_name LIKE :query
-                LIMIT :limit";
-        
-        $searchTerm = "%$query%";
-        return Database::fetchAll($sql, ['query' => $searchTerm, 'limit' => $limit]);
-    }
-    
-    /**
-     * Удалить пользователя
-     */
-    public static function delete(int $userId): bool
-    {
-        return Database::delete('users', ['id' => $userId]) > 0;
-    }
-    
-    /**
-     * Изменить роль пользователя
-     */
-    public static function changeRole(int $userId, string $role): bool
-    {
-        if (!in_array($role, ['user', 'admin'])) {
-            throw new Exception("Invalid role");
+        $user = self::findByEmail($email);
+        if (!$user) {
+            return;
         }
-        
-        return Database::update('users', ['role' => $role], ['id' => $userId]) > 0;
-    }
-    
-    /**
-     * Создать токен для сброса пароля
-     */
-    public static function createPasswordResetToken(int $userId): string
-    {
-        $token = bin2hex(random_bytes(32));
-        $expires = date('Y-m-d H:i:s', time() + 3600); // 1 час
-        
+
         $data = [
-            'user_id' => $userId,
-            'token' => hash('sha256', $token),
-            'expires_at' => $expires,
+            'email' => $email,
+            'token' => $token,
             'created_at' => date('Y-m-d H:i:s')
         ];
-        
-        // Удаляем старые токены
-        Database::delete('password_reset_tokens', ['user_id' => $userId]);
-        
-        // Сохраняем новый токен
-        Database::insert('password_reset_tokens', $data);
-        
-        return $token;
+        Database::insert('password_resets', $data);
     }
-    
-    /**
-     * Проверить токен сброса пароля
-     */
-    public static function verifyPasswordResetToken(string $token): ?int
+
+    public static function findUserByPasswordResetToken(string $token): ?array
     {
-        $hashedToken = hash('sha256', $token);
-        
-        $sql = "SELECT user_id FROM password_reset_tokens 
-                WHERE token = :token AND expires_at > NOW()";
-        
-        $result = Database::fetchOne($sql, ['token' => $hashedToken]);
-        
-        return $result ? (int)$result['user_id'] : null;
+        $sql = "SELECT * FROM password_resets WHERE token = :token AND created_at >= NOW() - INTERVAL '1 hour'";
+        $reset = Database::fetchOne($sql, ['token' => $token]);
+
+        if ($reset) {
+            return self::findByEmail($reset['email']);
+        }
+        return null;
     }
-    
-    /**
-     * Удалить токен сброса пароля
-     */
+
     public static function deletePasswordResetToken(string $token): void
     {
-        $hashedToken = hash('sha256', $token);
-        Database::delete('password_reset_tokens', ['token' => $hashedToken]);
+        Database::delete('password_resets', ['token' => $token]);
     }
 }

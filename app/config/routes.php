@@ -6,15 +6,23 @@ $routes = [
     ],
     // Auth routes
     '/login' => [
-        'GET' => 'UserController@showLogin',
-        'POST' => 'UserController@login'
+        'GET' => 'AuthController@showLoginForm',
+        'POST' => 'AuthController@login'
     ],
     '/logout' => [
-        'GET' => 'UserController@logout'
+        'GET' => 'AuthController@logout'
     ],
     '/register' => [
-        'GET' => 'UserController@showRegister',
-        'POST' => 'UserController@register'
+        'GET' => 'AuthController@showRegistrationForm',
+        'POST' => 'AuthController@register'
+    ],
+    '/password/reset' => [
+        'GET' => 'AuthController@showPasswordResetRequestForm',
+        'POST' => 'AuthController@handlePasswordResetRequest',
+    ],
+    '/password/reset/{token}' => [
+        'GET' => 'AuthController@showPasswordResetForm',
+        'POST' => 'AuthController@resetPassword'
     ],
 
     // File routes
@@ -72,6 +80,8 @@ $routeFilters = [
     // Guest routes: only accessible when not logged in.
     '/login' => 'guest',
     '/register' => 'guest',
+    '/password/reset' => 'guest',
+    '/password/reset/*' => 'guest',
 
     // Authenticated routes: only accessible when logged in.
     '/' => 'auth',
