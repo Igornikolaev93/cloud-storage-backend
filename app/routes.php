@@ -1,13 +1,19 @@
 <?php
 declare(strict_types=1);
 
+// --- ГАРАНТИРОВАННАЯ ЗАГРУЗКА ROUTER ---
+// Подключаем файл Router.php НАПРЯМУЮ в этом файле.
+// Это самый надежный способ решить проблему "Class not found".
+require_once __DIR__ . '/utils/Router.php';
+
 use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\FileController;
 use App\Controllers\DirectoryController;
 use App\Controllers\HomeController;
 use App\Controllers\UserController;
-use App\Utils\Router; // <--- ДОБАВЛЕНО
+// `use App\Utils\Router;` теперь не является строго обязательным, но оставим для ясности
+use App\Utils\Router;
 
 // Главная страница
 Router::get('/', [HomeController::class, 'index']);

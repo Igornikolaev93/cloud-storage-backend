@@ -1,1 +1,103 @@
-<?php\ndeclare(strict_types=1);\n\nnamespace App\\Utils;\n\nclass Router\n{\n    private static array $routes = [];\n    private static array $middlewares = [];\n\n    // Метод для добавления GET маршрута\n    public static function get(string $path, array $handler): void\n    {\n        self::addRoute(\'GET\', $path, $handler);\n    }\n\n    // Метод для добавления POST маршрута\n    public static function post(string $path, array $handler): void\n    {\n        self::addRoute(\'POST\', $path, $handler);\n    }\n    \n    // Метод для добавления PUT маршрута\n    public static function put(string $path, array $handler): void\n    {\n        self::addRoute(\'PUT\', $path, $handler);\n    }\n\n    // Метод для добавления DELETE маршрута\n    public static function delete(string $path, array $handler): void\n    {\n        self::addRoute(\'DELETE\', $path, $handler);\n    }\n\n    // Внутренний метод для добавления маршрута в массив\n    private static function addRoute(string $method, string $path, array $handler): void\n    {\n        self::$routes[$method][$path] = $handler;\n    }\n\n    // Основной метод, который находит и выполняет нужный контроллер\n    public static function dispatch(string $uri, string $method): void\n    {\n        // Убираем конечный слеш, если он есть, но оставляем для корневого пути\n        $uri = rtrim($uri, \'/\');\n        if (empty($uri)) {\n            $uri = \'/\';\n        }\n\n        // Ищем совпадение среди маршрутов\n        foreach (self::$routes[$method] as $path => $handler) {\n            $params = [];\n            $pattern = self::buildRegex($path, $params);\n\n            if (preg_match($pattern, $uri, $matches)) {\n                // Извлекаем параметры из URI\n                $routeParams = [];\n                foreach ($params as $key => $name) {\n                    if (isset($matches[$key])) {\n                        $routeParams[$name] = $matches[$key];\n                    }\n                }\n                \n                self::executeHandler($handler, $routeParams);\n                return;\n            }\n        }\n\n        // Если маршрут не найден\n        http_response_code(404);\n        echo json_encode([\'status\' => \'error\', \'message\' => \'Route not found\']);\n    }\n\n    // Вспомогательный метод для построения регулярного выражения из пути\n    private static function buildRegex(string $path, array &$params): string\n    {\n        $paramIndex = 1;\n        $regex = preg_replace_callback(\'/\\\{([^}]+)\\\}/\', function ($matches) use (&$params, &$paramIndex) {\n            $params[$paramIndex++] = $matches[1];\n            return \'([^/]+)\';\n        }, $path);\n\n        return \"#^$regex$#\";\n    }\n\n    // Метод для вызова контроллера\n    private static function executeHandler(array $handler, array $params): void\n    {\n        [$controllerClass, $method] = $handler;\n\n        if (!class_exists($controllerClass)) {\n            self::sendErrorResponse(\"Controller class {$controllerClass} not found.\");\n            return;\n        }\n\n        $controller = new $controllerClass();\n\n        if (!method_exists($controller, $method)) {\n            self::sendErrorResponse(\"Method {$method} not found in controller {$controllerClass}.\");\n            return;\n        }\n        \n        // Передаем параметры в метод контроллера\n        call_user_func_array([$controller, $method], [$params]);\n    }\n\n    private static function sendErrorResponse(string $message, int $code = 500): void\n    {\n        http_response_code($code);\n        echo json_encode([\'status\' => \'error\', \'message\' => $message]);\n    }\n}\n
+<?php
+declare(strict_types=1);
+
+namespace App\Utils;
+
+class Router
+{
+    private static array $routes = [];
+
+    // Методы для регистрации маршрутов
+    public static function get(string $path, array $handler): void
+    {
+        self::addRoute('GET', $path, $handler);
+    }
+
+    public static function post(string $path, array $handler): void
+    {
+        self::addRoute('POST', $path, $handler);
+    }
+
+    public static function put(string $path, array $handler): void
+    {
+        self::addRoute('PUT', $path, $handler);
+    }
+
+    public static function delete(string $path, array $handler): void
+    {
+        self::addRoute('DELETE', $path, $handler);
+    }
+
+    private static function addRoute(string $method, string $path, array $handler): void
+    {
+        self::$routes[$method][$path] = $handler;
+    }
+
+    // Основной метод для обработки запроса
+    public static function dispatch(string $uri, string $method): void
+    {
+        foreach (self::$routes[$method] ?? [] as $path => $handler) {
+            $params = [];
+            $pattern = self::buildRegex($path, $params);
+
+            if (preg_match($pattern, $uri, $matches)) {
+                // Извлекаем параметры из URI
+                $routeParams = [];
+                foreach ($params as $key => $name) {
+                    if (isset($matches[$key])) {
+                        // Декодируем URI-компоненты (например, %20 -> пробел)
+                        $routeParams[$name] = urldecode($matches[$key]);
+                    }
+                }
+
+                self::executeHandler($handler, $routeParams);
+                return;
+            }
+        }
+
+        // Если маршрут не найден
+        self::sendErrorResponse('Route not found', 404);
+    }
+
+    // Вспомогательный метод для построения регулярного выражения из пути
+    private static function buildRegex(string $path, array &$params): string
+    {
+        $paramIndex = 1;
+        // Заменяем плейсхолдеры {id}, {token} и т.д. на регулярные выражения
+        $regex = preg_replace_callback('/\\{([^}]+)\\}/', function ($matches) use (&$params, &$paramIndex) {
+            $params[$paramIndex++] = $matches[1];
+            return '([^/]+)';
+        }, $path);
+
+        return "#^$regex$#";
+    }
+
+    // Метод для вызова контроллера
+    private static function executeHandler(array $handler, array $params): void
+    {
+        [$controllerClass, $method] = $handler;
+
+        if (!class_exists($controllerClass)) {
+            self::sendErrorResponse("Controller class {$controllerClass} not found.");
+            return;
+        }
+
+        $controller = new $controllerClass();
+
+        if (!method_exists($controller, $method)) {
+            self::sendErrorResponse("Method {$method} not found in controller {$controllerClass}.");
+            return;
+        }
+
+        // Передаем параметры в метод контроллера
+        call_user_func_array([$controller, $method], [$params]);
+    }
+
+    // Метод для отправки JSON-ответа с ошибкой
+    private static function sendErrorResponse(string $message, int $code = 500): void
+    {
+        http_response_code($code);
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
