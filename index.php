@@ -9,22 +9,24 @@ ini_set('display_errors', '1');
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Загрузка конфигураций
-// Этот файл теперь также отвечает за запуск сессии
 require_once __DIR__ . '/app/config/config.php';
 
 // --- Определение константы для папки загрузок ---
-// Убедимся, что константа еще не определена
 if (!defined('UPLOAD_DIR')) {
     define('UPLOAD_DIR', __DIR__ . '/uploads');
 }
-// Создаем папку, если она не существует
 if (!is_dir(UPLOAD_DIR)) {
     mkdir(UPLOAD_DIR, 0777, true);
 }
 
 // --- Система маршрутизации ---
 
-// Загрузка маршрутов, которые теперь содержат `use App\Utils\Router;`
+// ВРЕМЕННОЕ ИСПРАВЛЕНИЕ: Прямое подключение класса Router
+// Это необходимо, так как кэш автозагрузчика Composer, вероятно, устарел.
+// Правильное решение - выполнить в терминале `composer dump-autoload -o`
+require_once __DIR__ . '/app/utils/Router.php';
+
+// Загрузка маршрутов
 require_once __DIR__ . '/app/routes.php';
 
 // Получаем URI и метод запроса
