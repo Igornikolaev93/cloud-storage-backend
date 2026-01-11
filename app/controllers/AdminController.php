@@ -5,93 +5,106 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Utils\Auth;
-use App\Utils\View;
 use Exception;
 
 class AdminController extends BaseController
 {
+    /**
+     * Конструктор для проверки прав администратора перед выполнением любого действия
+     */
     public function __construct()
     {
-        // The route filter in index.php already protects all admin routes.
-        // A duplicate check here is redundant.
-    }
-
-    /**
-     * Show the user management page.
-     */
-    public function users(): void
-    {
         try {
-            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-            $result = User::getList($page, 10); // 10 users per page
-            
-            View::render('admin/users', [
-                'users' => $result['users'],
-                'pagination' => $result['pagination'],
-                'user_role' => Auth::user()['role']
-            ]);
+            $user = Auth::getUser(); // Получаем всего пользователя, а не только ID
+            if (!$user || $user['role'] !== 'admin') {
+                // Если пользователь не авторизован или не является админом, прерываем выполнение
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'Forbidden: Administrator access required.'], 403);
+                exit; // Прекращаем выполнение скрипта
+            }
         } catch (Exception $e) {
-            View::render('admin/users', ['error' => 'Could not fetch users: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Handle user role change.
-     */
-    public function changeRole($userId): void
-    {
-        $userId = (int) $userId;
-        $newRole = $_POST['role'] ?? '';
-
-        if (empty($newRole)) {
-            header('Location: /admin/users');
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
             exit;
         }
+    }
 
+    /**
+     * GET /admin/users/list
+     * Получение списка всех пользователей
+     */
+    public function listUsers(): void
+    {
         try {
-            // Prevent an admin from accidentally removing their own admin status
-            if ($userId === Auth::id() && $newRole !== 'admin') {
-                throw new Exception('You cannot remove your own admin status.');
-            }
-            
-            User::changeRole($userId, $newRole);
-            header('Location: /admin/users');
-            exit;
+            $users = User::getAll();
+            $this->sendJsonResponse(['status' => 'success', 'data' => $users]);
         } catch (Exception $e) {
-            $result = User::getList();
-            View::render('admin/users', [
-                'users' => $result['users'],
-                'pagination' => $result['pagination'],
-                'error' => $e->getMessage(),
-                'user_role' => Auth::user()['role']
-            ]);
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Handle user deletion.
+     * GET /admin/users/get/{id}
+     * Получение информации по конкретному пользователю
      */
-    public function deleteUser($userId): void
+    public function getUser(array $params): void
     {
-        $userId = (int) $userId;
         try {
-            // Prevent an admin from deleting their own account
-            if ($userId === Auth::id()) {
-                throw new Exception('You cannot delete your own account.');
-            }
-
-            // Add a confirmation step to prevent accidental deletions
-            if (!isset($_POST['confirm'])) {
-                View::render('admin/delete_confirm', ['userId' => $userId]);
+            $userId = (int)$params['id'];
+            $user = User::findById($userId);
+            if (!$user) {
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'User not found'], 404);
                 return;
             }
-
-            User::delete($userId);
-            header('Location: /admin/users?message=User deleted successfully');
-            exit;
+            $this->sendJsonResponse(['status' => 'success', 'data' => $user]);
         } catch (Exception $e) {
-            header('Location: /admin/users?error=' . urlencode($e->getMessage()));
-            exit;
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * DELETE /admin/users/delete/{id}
+     * Удаление пользователя
+     */
+    public function deleteUser(array $params): void
+    {
+        try {
+            $userId = (int)$params['id'];
+             // Предотвращаем удаление самого себя
+            if ($userId === Auth::getUserId()) {
+                $this->sendJsonResponse(['status' => 'error', 'message' => \'Administrators cannot delete their own account.\'], 400);
+                return;
+            }
+            
+            if (User::delete($userId)) {
+                $this->sendJsonResponse(['status' => 'success', 'message' => 'User deleted successfully']);
+            } else {
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'User not found or could not be deleted'], 404);
+            }
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * PUT /admin/users/update/{id}
+     * Обновление информации пользователя
+     */
+    public function updateUser(array $params): void
+    {
+        try {
+            $userId = (int)$params['id'];
+
+            // Получаем данные из тела PUT-запроса
+            parse_str(file_get_contents("php://input"), $data);
+
+            // Здесь должна быть валидация данных ($data)
+
+            if (User::update($userId, $data)) {
+                $this->sendJsonResponse(['status' => 'success', 'message' => 'User updated successfully']);
+            } else {
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'User not found or could not be updated'], 404);
+            }
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 }

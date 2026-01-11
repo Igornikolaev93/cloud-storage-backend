@@ -38,6 +38,15 @@ class User
         $sql = "SELECT * FROM users WHERE email = :email";
         return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
     }
+    
+    /**
+     * Получение всех пользователей (для админки)
+     */
+    public static function getAll(): array
+    {
+        $sql = "SELECT id, email, first_name, last_name, role, created_at, updated_at FROM users ORDER BY created_at DESC";
+        return Database::fetchAll($sql);
+    }
 
     public static function updatePassword(int $userId, string $newPassword): bool
     {
@@ -47,6 +56,55 @@ class User
             ['password' => $passwordHash],
             ['id' => $userId]
         ) > 0;
+    }
+    
+    /**
+     * Обновление данных пользователя (для админки)
+     */
+    public static function update(int $userId, array $data): bool
+    {
+        $allowedFields = ['email', 'first_name', 'last_name', 'role'];
+        $updateData = [];
+
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+            }
+        }
+
+        // Пароль обновляется отдельно, если он был передан
+        if (!empty($data['password'])) {
+            $updateData['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        }
+
+        if (empty($updateData)) {
+            return false; // Нет данных для обновления
+        }
+
+        // Проверка уникальности email, если он меняется
+        if (isset($updateData['email'])) {
+            $existingUser = self::findByEmail($updateData['email']);
+            if ($existingUser && $existingUser['id'] !== $userId) {
+                throw new Exception("Email address is already in use by another account.");
+            }
+        }
+        
+        // Проверка корректности роли
+        if (isset($updateData['role']) && !in_array($updateData['role'], ['user', 'admin'])) {
+            throw new Exception("Invalid role specified.");
+        }
+
+        return Database::update('users', $updateData, ['id' => $userId]) > 0;
+    }
+
+    /**
+     * Удаление пользователя (для админки)
+     */
+    public static function delete(int $userId): bool
+    {
+        // В будущем здесь можно добавить логику для удаления связанных данных (файлов и т.д.),
+        // но пока что ON DELETE CASCADE в БД справляется с этим.
+        return Database::delete('users', ['id' => $userId]) > 0;
     }
 
     public static function createPasswordResetToken(string $email, string $token): void
@@ -78,55 +136,5 @@ class User
     public static function deletePasswordResetToken(string $token): void
     {
         Database::delete('password_resets', ['token' => $token]);
-    }
-    
-    public static function getList(int $page = 1, int $perPage = 20): array
-    {
-        $offset = ($page - 1) * $perPage;
-        
-        $sql = "SELECT id, email, first_name, last_name, role, created_at 
-                FROM users 
-                ORDER BY created_at DESC 
-                LIMIT :limit OFFSET :offset";
-        
-        $users = Database::fetchAll($sql, ['limit' => $perPage, 'offset' => $offset]);
-        
-        // Получаем общее количество
-        $total = Database::fetchColumn("SELECT COUNT(*) FROM users");
-        
-        return [
-            'users' => $users,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => (int)$total,
-                'total_pages' => ceil($total / $perPage)
-            ]
-        ];
-    }
-    
-    public static function search(string $query, int $limit = 10): array
-    {
-        $sql = "SELECT id, email, first_name, last_name 
-                FROM users 
-                WHERE email LIKE :query OR first_name LIKE :query OR last_name LIKE :query
-                LIMIT :limit";
-        
-        $searchTerm = "%$query%";
-        return Database::fetchAll($sql, ['query' => $searchTerm, 'limit' => $limit]);
-    }
-    
-    public static function delete(int $userId): bool
-    {
-        return Database::delete('users', ['id' => $userId]) > 0;
-    }
-    
-    public static function changeRole(int $userId, string $role): bool
-    {
-        if (!in_array($role, ['user', 'admin'])) {
-            throw new Exception("Invalid role");
-        }
-        
-        return Database::update('users', ['role' => $role], ['id' => $userId]) > 0;
     }
 }

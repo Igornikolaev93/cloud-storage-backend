@@ -5,121 +5,37 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+// Стартуем сессию
+session_start();
+
 // Автозагрузка Composer
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Загрузка конфигураций
 require_once __DIR__ . '/app/config/config.php';
-require_once __DIR__ . '/app/config/routes.php';
 
-// Функция для обработки маршрутов
-function handleRequest(array $routes, array $routeFilters): void
-{
-    $requestMethod = $_SERVER['REQUEST_METHOD'];
-    $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-    // Handle subdirectory
-    $basePath = dirname($_SERVER['SCRIPT_NAME']);
-    if ($basePath !== '/' && $basePath !== '\\') {
-        $requestUri = substr($requestUri, strlen($basePath));
-    }
-
-    // Serve static files from the public directory
-    if (strpos($requestUri, '/css/') === 0 || strpos($requestUri, '/js/') === 0) {
-        $filePath = __DIR__ . '/public' . $requestUri;
-        if (file_exists($filePath)) {
-            $mimeType = mime_content_type($filePath);
-            header("Content-Type: {$mimeType}");
-            readfile($filePath);
-            exit;
-        } else {
-            http_response_code(404);
-            echo "File not found";
-            exit;
-        }
-    }
-    
-    // Убираем конечный слеш
-    $requestUri = rtrim($requestUri, '/');
-    if (empty($requestUri)) {
-        $requestUri = '/';
-    }
-    
-    // Ищем маршрут
-    $handler = null;
-    $params = [];
-
-    if (isset($routes[$requestUri])) {
-        if (isset($routes[$requestUri][$requestMethod])) {
-            $handler = $routes[$requestUri][$requestMethod];
-        }
-    } else {
-        // Динамические маршруты
-        foreach ($routes as $route => $methods) {
-            if (strpos($route, '{') !== false) {
-                $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $route);
-                if (preg_match('#^' . $pattern . '$#', $requestUri, $matches)) {
-                    if (isset($methods[$requestMethod])) {
-                        $handler = $methods[$requestMethod];
-                        preg_match_all('/\{([^}]+)\}/', $route, $paramNames);
-                        $params = array_combine($paramNames[1], array_slice($matches, 1));
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if (!$handler) {
-        App\Utils\Response::json(['error' => 'Route not found'], 404);
-        return;
-    }
-
-    // Проверка фильтров
-    foreach ($routeFilters as $filter => $roles) {
-        $pattern = str_replace('*', '.*', $filter);
-        if (preg_match('#^' . $pattern . '$#', $requestUri)) {
-            $roles = is_array($roles) ? $roles : [$roles];
-            foreach ($roles as $role) {
-                if ($role === 'guest' && App\Utils\Auth::check()) {
-                    header('Location: /');
-                    exit;
-                }
-                if ($role === 'auth' && !App\Utils\Auth::check()) {
-                    header('Location: /login');
-                    exit;
-                }
-                if ($role === 'admin' && !App\Utils\Auth::hasRole('admin')) {
-                    header('Location: /');
-                    exit;
-                }
-            }
-        }
-    }
-
-    list($controllerName, $methodName) = explode('@', $handler);
-    $fullControllerName = 'App\\Controllers\\' . $controllerName;
-
-    if (!class_exists($fullControllerName)) {
-        App\Utils\Response::json(['error' => 'Controller not found'], 500);
-        return;
-    }
-
-    $controller = new $fullControllerName();
-
-    if (!method_exists($controller, $methodName)) {
-        App\Utils\Response::json(['error' => 'Method not found'], 500);
-        return;
-    }
-
-    // Pass parameters to the controller method positionally.
-    call_user_func_array([$controller, $methodName], array_values($params));
+// --- Определение константы для папки загрузок ---
+define('UPLOAD_DIR', __DIR__ . '/uploads');
+// Создаем папку, если она не существует
+if (!is_dir(UPLOAD_DIR)) {
+    mkdir(UPLOAD_DIR, 0777, true);
 }
 
-// Запускаем обработку запроса
-try {
-    handleRequest($routes, $routeFilters);
-} catch (Throwable $e) {
-    App\Utils\Response::json(['error' => 'Server error', 'message' => $e->getMessage()], 500);
-    error_log("Unhandled error: " . $e->getMessage());
+// --- Новая система маршрутизации ---
+use App\Utils\Router;
+
+// Загрузка маршрутов
+require_once __DIR__ . '/app/routes.php';
+
+// Получаем URI и метод запроса
+$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+
+// Обработка случая, когда проект находится в подпапке
+$basePath = dirname($_SERVER['SCRIPT_NAME']);
+if ($basePath !== '/' && $basePath !== '\\') {
+    $requestUri = substr($requestUri, strlen($basePath));
 }
+
+// Запускаем маршрутизатор
+Router::dispatch($requestUri, $requestMethod);

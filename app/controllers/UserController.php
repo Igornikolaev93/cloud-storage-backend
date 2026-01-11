@@ -5,92 +5,46 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Utils\Auth;
-use App\Utils\View;
 use Exception;
 
 class UserController extends BaseController
 {
     /**
-     * Show the login page.
+     * GET /user/search/{email}
+     * Поиск пользователя по email
      */
-    public function showLogin(): void
+    public function search(array $params): void
     {
-        View::render('login');
-    }
-
-    /**
-     * Handle user login from a form submission.
-     */
-    public function login(): void
-    {
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-
-        if (empty($email) || empty($password)) {
-            View::render('login', ['error' => 'Email and password are required']);
-            return;
-        }
-
         try {
-            $user = User::verifyCredentials($email, $password);
+            $userId = Auth::getUserId();
+            if (!$userId) {
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
+                return;
+            }
+
+            $email = $params['email'] ?? null;
+            if (!$email) {
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'Email is required'], 400);
+                return;
+            }
+
+            $user = User::findByEmail($email);
+
             if ($user) {
-                Auth::login($user);
-
-                // Redirect admins to the admin dashboard
-                if (Auth::hasRole('admin')) {
-                    header('Location: /admin/users');
-                } else {
-                    header('Location: /');
-                }
-                exit;
+                // Возвращаем только публичную информацию
+                $publicUserData = [
+                    'id' => $user['id'],
+                    'email' => $user['email'],
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name']
+                ];
+                $this->sendJsonResponse(['status' => 'success', 'data' => $publicUserData]);
             } else {
-                View::render('login', ['error' => 'Invalid credentials']);
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'User not found'], 404);
             }
+
         } catch (Exception $e) {
-            View::render('login', ['error' => 'Login failed: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * User logout.
-     */
-    public function logout(): void
-    {
-        Auth::logout();
-        header('Location: /login');
-        exit;
-    }
-
-    /**
-     * Show the registration page.
-     */
-    public function showRegister(): void
-    {
-        View::render('register');
-    }
-
-    /**
-     * Handle user registration from a form submission.
-     */
-    public function register(): void
-    {
-        $data = [
-            'first_name' => $_POST['first_name'] ?? '',
-            'last_name' => $_POST['last_name'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'password' => $_POST['password'] ?? ''
-        ];
-
-        try {
-            $userId = User::create($data);
-            if ($userId) {
-                header('Location: /login');
-                exit;
-            } else {
-                View::render('register', ['error' => 'Failed to create user']);
-            }
-        } catch (Exception $e) {
-            View::render('register', ['error' => $e->getMessage()]);
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 }
