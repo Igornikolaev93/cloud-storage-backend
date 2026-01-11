@@ -30,13 +30,13 @@ class Database
                         'pgsql:host=%s;port=%s;dbname=%s',
                         $config['host'],
                         $config['port'],
-                        $config['database']
+                        $config['dbname']
                     );
                 } else { // default to mysql
                     $dsn = sprintf(
                         'mysql:host=%s;dbname=%s;port=%s;charset=%s',
                         $config['host'],
-                        $config['database'],
+                        $config['dbname'],
                         $config['port'],
                         $config['charset']
                     );
@@ -51,7 +51,7 @@ class Database
                 
             } catch (PDOException $e) {
                 error_log("Database connection failed: " . $e->getMessage());
-                throw new Exception("Database connection error");
+                throw new Exception("Database connection error: " . $e->getMessage());
             }
         }
         
@@ -132,24 +132,35 @@ class Database
     /**
      * Insert a new record into a table and return the last insert ID.
      */
-    public static function insert(string $table, array $data): ?int
+    public static function insert(string $table, array $data): ?string
     {
         $q = self::getQuoteChar();
         $columns = array_keys($data);
         $quotedColumns = array_map(function($col) use ($q) { return $q . $col . $q; }, $columns);
         $placeholders = array_map(function($col) { return ':' . $col; }, $columns);
         
+        $driver = self::getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $returning = ($driver === 'pgsql') ? ' RETURNING id' : '';
+
         $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES (%s)',
+            'INSERT INTO %s (%s) VALUES (%s)%s',
             $table,
             implode(', ', $quotedColumns),
-            implode(', ', $placeholders)
+            implode(', ', $placeholders),
+            $returning
         );
         
-        self::query($sql, $data);
-        
-        $lastId = self::getConnection()->lastInsertId();
-        return $lastId ? (int)$lastId : null;
+        $stmt = self::query($sql, $data);
+
+        if ($returning) {
+            // fetchColumn() для SERIAL вернет int. Явно приводим к строке для соответствия типу возврата ?string.
+            $id = $stmt->fetchColumn();
+            return $id !== false ? (string)$id : null;
+        } else {
+            // lastInsertId() возвращает string или false. Приводим false к null.
+            $lastId = self::getConnection()->lastInsertId();
+            return $lastId !== false ? $lastId : null;
+        }
     }
     
     /**

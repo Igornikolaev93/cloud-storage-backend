@@ -1,88 +1,84 @@
--- Удаляем таблицы в обратном порядке, чтобы избежать ошибок внешних ключей
-DROP TABLE IF EXISTS file_shares;
-DROP TABLE IF EXISTS files;
-DROP TABLE IF EXISTS directories;
-DROP TABLE IF EXISTS password_resets;
-DROP TABLE IF EXISTS users;
-DROP TYPE IF EXISTS user_role;
+--
+-- SQL-скрипт для создания структуры базы данных PostgreSQL для проекта Cloud Storage.
+--
 
--- Создаем кастомный тип для ролей пользователей
-CREATE TYPE user_role AS ENUM ('user', 'admin');
+-- Включаем расширение для генерации UUID, если оно понадобится в будущем.
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Таблица пользователей
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    role user_role NOT NULL DEFAULT 'user',
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+-- Удаляем таблицы в обратном порядке зависимостей, если они уже существуют, для чистого старта.
+DROP TABLE IF EXISTS "password_resets";
+DROP TABLE IF EXISTS "files";
+DROP TABLE IF EXISTS "users";
+
+--
+-- Таблица: users
+-- Хранит информацию о пользователях.
+--
+CREATE TABLE "users" (
+    "id" SERIAL PRIMARY KEY,
+    "username" VARCHAR(50) NOT NULL UNIQUE,
+    "email" VARCHAR(100) NOT NULL UNIQUE,
+    "password_hash" VARCHAR(255) NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица для токенов сброса пароля
-CREATE TABLE password_resets (
-    email VARCHAR(255) PRIMARY KEY,
-    token VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+COMMENT ON TABLE "users" IS 'Хранит учетные записи пользователей.';
+COMMENT ON COLUMN "users"."password_hash" IS 'Хэш пароля, созданный с помощью password_hash().';
+
+--
+-- Таблица: files
+-- Хранит информацию о загруженных файлах.
+--
+CREATE TABLE "files" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "file_name" VARCHAR(255) NOT NULL,
+    "file_path" VARCHAR(512) NOT NULL UNIQUE, -- Уникальный путь в файловой системе
+    "file_size" BIGINT NOT NULL, -- Размер в байтах
+    "mime_type" VARCHAR(100) NOT NULL,
+    "upload_date" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "access_token" VARCHAR(255) NULL UNIQUE, -- Токен для публичного доступа
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE -- Удалять файлы пользователя, если удаляется сам пользователь.
 );
 
--- Таблица для директорий (папок)
-CREATE TABLE directories (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    parent_id INT,
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_id) REFERENCES directories(id) ON DELETE CASCADE,
-    UNIQUE (user_id, parent_id, name)
+CREATE INDEX "idx_user_id" ON "files"("user_id");
+
+COMMENT ON TABLE "files" IS 'Хранит метаданные о загруженных файлах.';
+COMMENT ON COLUMN "files"."access_token" IS 'Токен для генерации публичных ссылок на файл.';
+
+
+--
+-- Таблица: password_resets
+-- Хранит токены для сброса пароля.
+--
+CREATE TABLE "password_resets" (
+    "id" SERIAL PRIMARY KEY,
+    "email" VARCHAR(100) NOT NULL,
+    "token" VARCHAR(255) NOT NULL UNIQUE,
+    "expires_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX directories_parent_id_null_unique
-ON directories (user_id, name)
-WHERE parent_id IS NULL;
+CREATE INDEX "idx_token" ON "password_resets"("token");
 
--- Таблица для файлов
-CREATE TABLE files (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL, -- Владелец файла
-    directory_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    stored_name VARCHAR(255) NOT NULL UNIQUE,
-    mime_type VARCHAR(100) NOT NULL,
-    size BIGINT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (directory_id) REFERENCES directories(id) ON DELETE CASCADE,
-    UNIQUE (directory_id, name)
-);
+COMMENT ON TABLE "password_resets" IS 'Хранит токены для сброса паролей пользователей.';
 
--- Новая таблица для предоставления доступа к файлам
-CREATE TABLE file_shares (
-    id SERIAL PRIMARY KEY,
-    file_id INT NOT NULL,
-    user_id INT NOT NULL, -- Пользователь, которому предоставили доступ
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (file_id, user_id) -- Нельзя поделиться одним и тем же файлом дважды с одним пользователем
-);
-
-
--- Триггерная функция для автоматического обновления поля updated_at
+-- Обновление функции для автоматического обновления поля updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-   NEW.updated_at = NOW(); 
+   NEW.updated_at = NOW();
    RETURN NEW;
 END;
 $$ language 'plpgsql';
 
--- Применяем триггер к таблицам
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_directories_updated_at BEFORE UPDATE ON directories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Применение триггера к таблице users
+CREATE TRIGGER "update_users_updated_at"
+BEFORE UPDATE ON "users"
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
