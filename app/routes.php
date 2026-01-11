@@ -7,7 +7,7 @@ use App\Controllers\FileController;
 use App\Controllers\DirectoryController;
 use App\Controllers\HomeController;
 use App\Controllers\UserController;
-use App\Utils\Router;
+use App\Utils\Router; // <--- ДОБАВЛЕНО
 
 // Главная страница
 Router::get('/', [HomeController::class, 'index']);
@@ -35,40 +35,19 @@ Router::delete('/admin/users/delete/{id}', [AdminController::class, 'deleteUser'
 Router::put('/admin/users/update/{id}', [AdminController::class, 'updateUser']);
 
 // --- Управление файлами ---
-// GET /files/list - Вывести список файлов и папок в корне
 Router::get('/files/list', [FileController::class, 'list']);
-
-// GET /files/get/{id} - Получить информацию о конкретном файле
 Router::get('/files/get/{id}', [FileController::class, 'get']);
-
-// POST /files/add - Добавить (загрузить) файл
 Router::post('/files/add', [FileController::class, 'add']);
-
-// PUT /files/rename - Переименовать файл
 Router::put('/files/rename', [FileController::class, 'rename']);
-
-// DELETE /files/remove/{id} - Удалить файл
 Router::delete('/files/remove/{id}', [FileController::class, 'remove']);
 
 // --- Управление доступом к файлам ---
-// GET /files/share/{id} - Получить список пользователей, имеющих доступ к файлу
 Router::get('/files/share/{id}', [FileController::class, 'getSharedUsers']);
-
-// PUT /files/share/{id}/{user_id} - Добавить доступ к файлу пользователю
 Router::put('/files/share/{id}/{user_id}', [FileController::class, 'shareWithUser']);
-
-// DELETE /files/share/{id}/{user_id} - Прекратить доступ к файлу
 Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWithUser']);
 
 // --- Управление папками ---
-// POST /directories/add - Добавить папку (директорию)
 Router::post('/directories/add', [DirectoryController::class, 'add']);
-
-// PUT /directories/rename - Переименовать папку
 Router::put('/directories/rename', [DirectoryController::class, 'rename']);
-
-// GET /directories/get/{id} - Получить содержимое папки
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
-
-// DELETE /directories/delete/{id} - Удалить папку
 Router::delete('/directories/delete/{id}', [DirectoryController::class, 'delete']);
