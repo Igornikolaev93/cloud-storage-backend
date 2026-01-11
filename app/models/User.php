@@ -79,4 +79,54 @@ class User
     {
         Database::delete('password_resets', ['token' => $token]);
     }
+    
+    public static function getList(int $page = 1, int $perPage = 20): array
+    {
+        $offset = ($page - 1) * $perPage;
+        
+        $sql = "SELECT id, email, first_name, last_name, role, created_at 
+                FROM users 
+                ORDER BY created_at DESC 
+                LIMIT :limit OFFSET :offset";
+        
+        $users = Database::fetchAll($sql, ['limit' => $perPage, 'offset' => $offset]);
+        
+        // Получаем общее количество
+        $total = Database::fetchColumn("SELECT COUNT(*) FROM users");
+        
+        return [
+            'users' => $users,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => (int)$total,
+                'total_pages' => ceil($total / $perPage)
+            ]
+        ];
+    }
+    
+    public static function search(string $query, int $limit = 10): array
+    {
+        $sql = "SELECT id, email, first_name, last_name 
+                FROM users 
+                WHERE email LIKE :query OR first_name LIKE :query OR last_name LIKE :query
+                LIMIT :limit";
+        
+        $searchTerm = "%$query%";
+        return Database::fetchAll($sql, ['query' => $searchTerm, 'limit' => $limit]);
+    }
+    
+    public static function delete(int $userId): bool
+    {
+        return Database::delete('users', ['id' => $userId]) > 0;
+    }
+    
+    public static function changeRole(int $userId, string $role): bool
+    {
+        if (!in_array($role, ['user', 'admin'])) {
+            throw new Exception("Invalid role");
+        }
+        
+        return Database::update('users', ['role' => $role], ['id' => $userId]) > 0;
+    }
 }
