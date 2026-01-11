@@ -1,35 +1,50 @@
 <?php
 declare(strict_types=1);
 
-// --- Настройки сессии ---
-// Устанавливаем параметры сессии ПЕРЕД ее запуском
+/**
+ * Основной конфигурационный файл приложения.
+ * Содержит настройки для подключения к базе данных, почты и другие глобальные параметры.
+ */
 
-// Установим имя сессии, чтобы избежать конфликтов
-session_name('CloudStorageSession'); 
+// Установка внутренней кодировки для многобайтовых строк
+mb_internal_encoding('UTF-8');
 
-// Устанавливаем параметры cookie для сессии
-session_set_cookie_params([
-    'lifetime' => 3600, // 1 час
-    'path' => '/',
-    // 'domain' => '.yourdomain.com', // Раскомментируйте, если есть домен
-    'secure' => isset($_SERVER['HTTPS']), // true, если используется HTTPS
-    'httponly' => true, // Защита от XSS
-    'samesite' => 'Lax' // Защита от CSRF
-]);
+// --- Часовой пояс ---
+define('APP_TIMEZONE', 'UTC');
+date_default_timezone_set(APP_TIMEZONE);
 
-// --- Запуск сессии ---
-// Запускаем сессию только если она еще не активна
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// --- Режим отладки ---
+// Установите в `true` для отображения подробных ошибок в процессе разработки.
+// В производственной среде ОБЯЗАТЕЛЬНО установите в `false`.
+define('DEBUG_MODE', true);
+
+if (DEBUG_MODE) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+} else {
+    error_reporting(0);
+    ini_set('display_errors', '0');
 }
 
-// --- Настройки базы данных ---
-// Замените на ваши реальные данные для подключения к PostgreSQL
-define('DB_HOST', 'localhost');
-//define('DB_PORT', '5432'); // можно не указывать, если используется порт по умолчанию
-define('DB_NAME', 'cloud_storage');
-define('DB_USER', 'postgres');
-define('DB_PASS', 'root'); // Укажите ваш пароль
+// --- Настройки базы данных (PostgreSQL) ---
+// Все параметры собраны в один массив, как того требует класс Database.php
+define('DB_CONFIG', [
+    'driver'   => 'pgsql', // Драйвер базы данных
+    'host'     => 'localhost', // Хост
+    'port'     => '5432',      // Порт (стандартный для PostgreSQL)
+    'dbname'   => 'cloud_storage', // Имя базы данных
+    'username' => 'postgres',  // Имя пользователя
+    'password' => 'root',      // Пароль пользователя
+    'charset'  => 'utf8',      // Кодировка
+    'options'  => [
+        // Режим обработки ошибок: выбрасывать исключения (рекомендуется)
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        // Режим выборки по умолчанию: ассоциативный массив
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        // Отключение эмуляции подготовленных запросов для безопасности
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ],
+]);
 
 // --- Настройки почты (для сброса пароля) ---
 define('MAIL_HOST', 'smtp.example.com');
@@ -38,3 +53,7 @@ define('MAIL_USER', 'your-email@example.com');
 define('MAIL_PASS', 'your-email-password');
 define('MAIL_FROM_ADDRESS', 'no-reply@example.com');
 define('MAIL_FROM_NAME', 'Cloud Storage');
+
+// --- Прочие настройки ---
+// URL вашего приложения (используется для генерации ссылок, например, для сброса пароля)
+define('APP_URL', 'http://localhost/cloud-storage-backend');
