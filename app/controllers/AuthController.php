@@ -58,7 +58,7 @@ class AuthController extends BaseController
 
         $user = User::findByEmail($email);
 
-        if ($user && password_verify($password, $user['password'])) {
+        if ($user && isset($user['password']) && password_verify($password, $user['password'])) {
             Auth::login($user['id']);
             header('Location: /');
         } else {
