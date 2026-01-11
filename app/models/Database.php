@@ -7,6 +7,7 @@ use PDO;
 use PDOException;
 use Exception;
 
+// FINAL VERSION - This file is corrected for type errors.
 class Database
 {
     private static ?PDO $connection = null;
@@ -136,8 +137,8 @@ class Database
     {
         $q = self::getQuoteChar();
         $columns = array_keys($data);
-        $quotedColumns = array_map(function($col) use ($q) { return $q . $col . $q; }, $columns);
-        $placeholders = array_map(function($col) { return ':' . $col; }, $columns);
+        $quotedColumns = array_map(fn($col) => $q . $col . $q, $columns);
+        $placeholders = array_map(fn($col) => ':' . $col, $columns);
         
         $driver = self::getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
         $returning = ($driver === 'pgsql') ? ' RETURNING id' : '';
@@ -153,11 +154,11 @@ class Database
         $stmt = self::query($sql, $data);
 
         if ($returning) {
-            // fetchColumn() для SERIAL вернет int. Явно приводим к строке для соответствия типу возврата ?string.
+            // For PostgreSQL, fetchColumn() can return an int. We must cast it to a string.
             $id = $stmt->fetchColumn();
             return $id !== false ? (string)$id : null;
         } else {
-            // lastInsertId() возвращает string или false. Приводим false к null.
+            // For MySQL, lastInsertId() returns a string or false.
             $lastId = self::getConnection()->lastInsertId();
             return $lastId !== false ? $lastId : null;
         }
