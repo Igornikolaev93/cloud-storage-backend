@@ -1,119 +1,138 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Controllers;
 
 use App\Models\User;
-use App\Utils\Auth;
-use App\Utils\View;
+use App\Models\PasswordReset;
 
 class AuthController extends BaseController
 {
-    public function showRegistrationForm(): void
-    {
-        View::render('register');
-    }
-
-    public function register(): void
-    {
-        $data = [
-            'email' => $_POST['email'],
-            'password' => $_POST['password'],
-            'first_name' => $_POST['first_name'],
-            'last_name' => $_POST['last_name'],
-        ];
-
-        // Basic validation
-        if (empty($data['email']) || empty($data['password']) || empty($data['first_name']) || empty($data['last_name'])) {
-            // Handle error: fields cannot be empty
-            View::render('register', ['error' => 'All fields are required.']);
-            return;
-        }
-
-        if (User::findByEmail($data['email'])) {
-            // Handle error: user already exists
-            View::render('register', ['error' => 'User with this email already exists.']);
-            return;
-        }
-
-        $userId = User::create($data);
-
-        if ($userId) {
-            Auth::login($userId);
-            header('Location: /');
-        } else {
-            // Handle error: registration failed
-            View::render('register', ['error' => 'An error occurred during registration.']);
+    public function __construct() {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
         }
     }
 
     public function showLoginForm(): void
     {
-        View::render('login');
+        $this->renderView('login');
     }
 
-    public function login(): void
+    public function handleLogin(): void
     {
-        $email = $_POST['email'];
-        $password = $_POST['password'];
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
 
         $user = User::findByEmail($email);
 
-        if ($user && isset($user['password']) && password_verify($password, $user['password'])) {
-            Auth::login($user['id']);
+        if ($user && password_verify($password, $user['password_hash'])) {
+            $_SESSION['user_id'] = $user['id'];
             header('Location: /');
+            exit;
         } else {
-            View::render('login', ['error' => 'Invalid email or password.']);
+            $this->renderView('login', ['error' => 'Invalid email or password.']);
+        }
+    }
+
+    public function showRegisterForm(): void
+    {
+        $this->renderView('register');
+    }
+
+    public function handleRegister(): void
+    {
+        $firstName = $_POST['first_name'] ?? '';
+        $lastName = $_POST['last_name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
+            $this->renderView('register', ['error' => 'All fields are required.']);
+            return;
+        }
+
+        if (User::findByEmail($email)) {
+            $this->renderView('register', ['error' => 'User with this email already exists.']);
+            return;
+        }
+
+        $userId = User::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+            'password' => $password,
+            'username' => $email // Or generate a unique username
+        ]);
+
+        if ($userId) {
+            $_SESSION['user_id'] = $userId;
+            header('Location: /');
+            exit;
+        } else {
+            $this->renderView('register', ['error' => 'An error occurred during registration.']);
         }
     }
 
     public function logout(): void
     {
-        Auth::logout();
+        session_destroy();
         header('Location: /login');
+        exit;
     }
 
     public function showPasswordResetRequestForm(): void
     {
-        View::render('password_reset_request');
+        $this->renderView('password_reset_request');
     }
 
     public function handlePasswordResetRequest(): void
     {
-        $email = $_POST['email'];
+        $email = $_POST['email'] ?? '';
         $user = User::findByEmail($email);
 
         if ($user) {
             $token = bin2hex(random_bytes(32));
-            User::createPasswordResetToken($email, $token);
-
-            // In a real application, you would send an email with this link.
-            // For this example, we'll just show a message.
-            $resetLink = 'http://' . $_SERVER['HTTP_HOST'] . '/password/reset/' . $token;
-            View::render('password_reset_request', ['message' => 'Password reset link: ' . $resetLink]);
+            PasswordReset::create($user['id'], $token);
+            // In a real app, you would send an email with the link:
+            // $resetLink = 'http://' . $_SERVER['HTTP_HOST'] . '/password-reset/' . $token;
+            // mail($email, 'Password Reset', 'Click here to reset your password: ' . $resetLink);
+            $this->renderView('password_reset_request', ['message' => 'If an account with that email exists, a password reset link has been sent.']);
         } else {
-            View::render('password_reset_request', ['error' => 'No user found with that email address.']);
+             $this->renderView('password_reset_request', ['message' => 'If an account with that email exists, a password reset link has been sent.']);
         }
     }
 
-    public function showPasswordResetForm($params): void
+    public function showPasswordResetForm(string $token): void
     {
-        $token = $params['token'];
-        View::render('password_reset', ['token' => $token]);
+        $passwordReset = PasswordReset::findByToken($token);
+
+        if ($passwordReset && strtotime($passwordReset['expires_at']) > time()) {
+            $this->renderView('password_reset', ['token' => $token]);
+        } else {
+            $this->renderView('password_reset_request', ['error' => 'Invalid or expired token.']);
+        }
     }
 
-    public function resetPassword($params): void
+    public function handlePasswordReset(string $token): void
     {
-        $token = $params['token'];
-        $password = $_POST['password'];
-        
-        $user = User::findUserByPasswordResetToken($token);
+        $passwordReset = PasswordReset::findByToken($token);
 
-        if ($user) {
-            User::updatePassword($user['id'], $password);
-            User::deletePasswordResetToken($token);
-            View::render('login', ['message' => 'Password has been reset. You can now log in.']);
-        } else {
-            View::render('password_reset', ['token' => $token, 'error' => 'Invalid or expired token.']);
+        if (!$passwordReset || strtotime($passwordReset['expires_at']) <= time()) {
+            $this->renderView('password_reset_request', ['error' => 'Invalid or expired token.']);
+            return;
         }
+
+        $password = $_POST['password'] ?? '';
+        if (empty($password)) {
+            $this->renderView('password_reset', ['token' => $token, 'error' => 'Password cannot be empty.']);
+            return;
+        }
+
+        User::updatePassword($passwordReset['user_id'], $password);
+        PasswordReset::deleteByToken($token);
+
+        header('Location: /login?message=Password+reset+successful.+Please+login.');
+        exit;
     }
 }

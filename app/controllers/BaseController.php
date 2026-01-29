@@ -10,6 +10,28 @@ namespace App\Controllers;
 abstract class BaseController
 {
     /**
+     * Renders a view file.
+     *
+     * @param string $view The view file to render.
+     * @param array $data Data to pass to the view.
+     */
+    protected function renderView(string $view, array $data = []): void
+    {
+        // Make data available to the view
+        extract($data);
+
+        // Path to the view file
+        $viewFile = __DIR__ . '/../views/' . $view . '.php';
+
+        if (file_exists($viewFile)) {
+            require_once $viewFile;
+        } else {
+            // Handle view not found
+            $this->sendErrorResponse("View not found: {$view}", 404);
+        }
+    }
+
+    /**
      * Отправляет унифицированный JSON-ответ клиенту.
      *
      * @param array $data Данные для кодирования в JSON.
