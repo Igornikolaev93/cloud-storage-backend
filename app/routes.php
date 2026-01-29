@@ -19,17 +19,17 @@ use App\Utils\Router;
 Router::get('/', [HomeController::class, 'index']);
 
 // Аутентификация
-Router::get('/register', [AuthController::class, 'showRegistrationForm']);
-Router::post('/register', [AuthController::class, 'register']);
+Router::get('/register', [AuthController::class, 'showRegisterForm']);
+Router::post('/register', [AuthController::class, 'handleRegister']);
 Router::get('/login', [AuthController::class, 'showLoginForm']);
-Router::post('/login', [AuthController::class, 'login']);
+Router::post('/login', [AuthController::class, 'handleLogin']);
 Router::get('/logout', [AuthController::class, 'logout']);
 
 // Сброс пароля
 Router::get('/password/reset', [AuthController::class, 'showPasswordResetRequestForm']);
 Router::post('/password/reset', [AuthController::class, 'handlePasswordResetRequest']);
 Router::get('/password/reset/{token}', [AuthController::class, 'showPasswordResetForm']);
-Router::post('/password/reset/{token}', [AuthController::class, 'resetPassword']);
+Router::post('/password/reset/{token}', [AuthController::class, 'handlePasswordReset']);
 
 // --- Поиск пользователя ---
 Router::get('/user/search/{email}', [UserController::class, 'search']);
