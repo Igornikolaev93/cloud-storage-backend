@@ -1,322 +1,151 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) {
+//- Files View
+//- This view is the main interface for users to manage their files and directories.
+//- It displays a list of directories and files, allows for navigation,
+//- and provides forms for creating directories and uploading files.
+//- The view receives data from the FileController, including a list of
+//- directories and files for the current path.
+
+//- Additionally, we have added:
+//- 1. A "Logout" button in the header.
+//- 2. "Delete" buttons for each file and directory.
+//- 3. JavaScript confirmation dialogs for delete actions to prevent accidental deletion.
+
+declare(strict_types=1);
+
+//- Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/../utils/Auth.php';
-require_once __DIR__ . '/../models/File.php';
+$user = $_SESSION['user'] ?? null;
+$currentDir = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
 
-use App\Utils\Auth;
-use App\Models\File;
-
-if (!Auth::check()) {
+//- Redirect to login if user is not authenticated
+if (!$user) {
     header('Location: /login');
     exit;
 }
-
-$user = Auth::user();
-$directoryId = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
-$contents = File::getDirectoryContents($user['id'], $directoryId);
-
-// Determine the correct parent ID for the back link
-$parentId = null;
-if ($directoryId) {
-    $currentDir = File::findDirectoryById($directoryId, $user['id']);
-    $parentId = $currentDir ? $currentDir['parent_id'] : null;
-}
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Dribbbox</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>My Files</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f8f9fb;
-            margin: 0;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            color: #1a1a1a;
-            margin: 0;
-        }
-
-        .search-bar {
-            display: flex;
-            align-items: center;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 8px 15px;
-            width: 300px;
-        }
-
-        .search-bar i {
-            color: #888;
-        }
-
-        .search-bar input {
-            border: none;
-            background: none;
-            outline: none;
-            margin-left: 10px;
-            width: 100%;
-            font-size: 14px;
-        }
-        
-        .filters {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .filters .recent-filter {
-            color: #333;
-            background: #fff;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            cursor: pointer;
-        }
-
-        .view-options button {
-            border: 1px solid #e0e0e0;
-            background: #fff;
-            border-radius: 8px;
-            cursor: pointer;
-            color: #888;
-            font-size: 18px;
-            width: 40px;
-            height: 40px;
-            margin-left: 10px;
-        }
-
-        .file-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
-            position: relative;
-        }
-
-        .file-item, .dir-item {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s ease-in-out;
-            position: relative;
-        }
-        
-        .file-item:hover, .dir-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-            border-color: #4a90e2;
-        }
-
-        .item-icon {
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
-        
-        .dir-item .item-icon { color: #5eb5ff; }
-        .file-item .item-icon { color: #a9c5e8; }
-        
-        .item-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 16px;
-        }
-
-        .item-date {
-            font-size: 13px;
-            color: #888;
-        }
-
-        .item-actions {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-        }
-
-        .item-actions button {
-            border: none;
-            background: none;
-            color: #888;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        .fab-container {
-            position: fixed;
-            bottom: 40px;
-            right: 40px;
-        }
-        
-        .fab {
-            background-color: #4a4ff4;
+        body { font-family: sans-serif; margin: 0; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 8px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .header h1 { margin: 0; }
+        .header .user-info { font-size: 1.1em; }
+        .breadcrumb a { text-decoration: none; color: #007bff; }
+        .file-list { list-style: none; padding: 0; }
+        .file-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .file-item:last-child { border-bottom: none; }
+        .file-item .icon { margin-right: 15px; }
+        .file-item .name { flex-grow: 1; }
+        .file-item .actions { display: flex; }
+        .file-item .actions form { margin-left: 10px; }
+        .fab { position: fixed; right: 30px; bottom: 30px; background: #007bff; color: white; width: 60px; height: 60px; border-radius: 50%; text-align: center; line-height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .logout-btn {
+            background-color: #f44336;
             color: white;
+            padding: 10px 15px;
             border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 28px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+            border-radius: 5px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Modal styles */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 100; 
-            left: 0;
-            top: 0;
-            width: 100%; 
-            height: 100%; 
-            overflow: auto; 
-            background-color: rgba(0,0,0,0.5); 
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto; 
-            padding: 25px;
-            border: none;
-            width: 90%; 
-            max-width: 450px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
             text-decoration: none;
-            cursor: pointer;
         }
-
     </style>
 </head>
 <body>
+
     <div class="container">
         <div class="header">
-            <h1>Your Dribbbox</h1>
-            <div class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search Folder">
-            </div>
-        </div>
-        
-        <div class="filters">
-            <div class="recent-filter">
-                Recent <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="view-options">
-                <button title="List View"><i class="fas fa-list"></i></button>
-                <button title="Grid View"><i class="fas fa-th-large"></i></button>
+            <h1>My Files</h1>
+            <div class="user-info">
+                Welcome, <?= htmlspecialchars($user['username']) ?>!
+                <a href="/logout" class="logout-btn">Logout</a>
             </div>
         </div>
 
-        <div class="file-grid">
-            <?php if ($directoryId): ?>
-                <a href="/files<?= $parentId ? '?dir=' . $parentId : '' ?>" class="dir-item">
-                    <div class="item-icon"><i class="fas fa-arrow-left"></i></div>
-                    <div class="item-name">..</div>
-                </a>
+        <div class="breadcrumb">
+            <a href="/files">Home</a>
+            <?php if ($parent_id): ?>
+                / <a href="/files?dir=<?= $parent_id ?>">Up</a>
             <?php endif; ?>
-
-            <?php if (isset($contents['directories'])) foreach ($contents['directories'] as $directory): ?>
-                <a href="/files?dir=<?= $directory['id'] ?>" class="dir-item">
-                    <div class="item-icon"><i class="fas fa-folder"></i></div>
-                    <div class="item-name"><?= htmlspecialchars($directory['name']) ?></div>
-                    <div class="item-date"><?= date('M d, Y', strtotime($directory['created_at'])) ?></div>
-                    <div class="item-actions">
-                        <button><i class="fas fa-ellipsis-h"></i></button>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-
-            <?php if (isset($contents['files'])) foreach ($contents['files'] as $file): ?>
-                <div class="file-item">
-                    <div class="item-icon"><i class="fas fa-file-alt"></i></div>
-                    <div class="item-name"><?= htmlspecialchars($file['name']) ?></div>
-                    <div class="item-date"><?= date('M d, Y', strtotime($file['created_at'])) ?></div>
-                    <div class="item-actions">
-                        <button><i class="fas fa-ellipsis-h"></i></button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
         </div>
+
+        <ul class="file-list">
+            <?php if ($parent_id !== null): ?>
+                <li class="file-item">
+                    <div class="icon">&#128193;</div>
+                    <a href="/files?dir=<?= $parent_id ?>" class="name">..</a>
+                </li>
+            <?php endif; ?>
+            <?php foreach ($directories as $dir): ?>
+                <li class="file-item">
+                    <div class="icon">&#128193;</div>
+                    <a href="/files?dir=<?= $dir['id'] ?>" class="name"><?= htmlspecialchars($dir['name']) ?></a>
+                    <div class="actions">
+                        <form action="/directories/remove" method="post" onsubmit="return confirm('Are you sure you want to delete this directory and all its contents?');">
+                            <input type="hidden" name="id" value="<?= $dir['id'] ?>">
+                            <input type="hidden" name="directory_id" value="<?= $currentDir ?>">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+            <?php foreach ($files as $file): ?>
+                <li class="file-item">
+                    <div class="icon">&#128196;</div>
+                    <div class="name"><?= htmlspecialchars($file['name']) ?></div>
+                    <div class="actions">
+                        <form action="/files/remove" method="post" onsubmit="return confirm('Are you sure you want to delete this file?');">
+                            <input type="hidden" name="id" value="<?= $file['id'] ?>">
+                            <input type="hidden" name="directory_id" value="<?= $currentDir ?>">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ul>
     </div>
-    
-    <div class="fab-container">
-        <button class="fab" id="fab-button">+</button>
-    </div>
-    
-    <!-- Modals -->
-    <div id="upload-modal" class="modal">
+
+    <div class="fab">+</div>
+
+    <div id="uploadModal" class="modal">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Upload File</h2>
-            <form action="/files/add" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="directory_id" value="<?= $directoryId ?>">
+            <span class="close">&times;</span>
+            <h2>Upload a File</h2>
+            <form action="/files/upload" method="post" enctype="multipart/form-data">
                 <input type="file" name="file" required>
+                <input type="hidden" name="directory_id" value="<?= $currentDir ?>">
                 <button type="submit">Upload</button>
             </form>
         </div>
     </div>
 
-    <div id="create-dir-modal" class="modal">
+    <div id="createDirModal" class="modal">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Create Directory</h2>
+            <span class="close">&times;</span>
+            <h2>Create a Directory</h2>
             <form action="/directories/add" method="post">
-                <input type="hidden" name="directory_id" value="<?= $directoryId ?>">
                 <input type="text" name="name" placeholder="Directory Name" required>
+                <input type="hidden" name="directory_id" value="<?= $currentDir ?>">
                 <button type="submit">Create</button>
             </form>
         </div>
     </div>
-
     <script>
-        var uploadModal = document.getElementById("upload-modal");
-        var createDirModal = document.getElementById("create-dir-modal");
-        var fabButton = document.getElementById("fab-button");
-        var closeButtons = document.getElementsByClassName("close-button");
+        const fabButton = document.querySelector('.fab');
+        const uploadModal = document.getElementById('uploadModal');
+        const createDirModal = document.getElementById('createDirModal');
+        const closeButtons = document.querySelectorAll('.close');
 
         fabButton.onclick = function() {
             if (confirm("Create a new Directory? (Cancel to upload a file)")) {

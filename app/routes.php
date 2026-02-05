@@ -40,17 +40,17 @@ use App\Utils\Router;
 Router::get('/', [HomeController::class, 'index']);
 
 // Authentication
-Router::get('/register', [AuthController::class, 'showRegisterForm']);
-Router::post('/register', [AuthController::class, 'handleRegister']);
+Router::get('/register', [AuthController::class, 'showRegistrationForm']);
+Router::post('/register', [AuthController::class, 'register']);
 Router::get('/login', [AuthController::class, 'showLoginForm']);
-Router::post('/login', [AuthController::class, 'handleLogin']);
+Router::post('/login', [AuthController::class, 'login']);
 Router::get('/logout', [AuthController::class, 'logout']);
 
 // File Management
 Router::get('/files', [FileController::class, 'index']);
 Router::get('/files/list', [FileController::class, 'list']);
 Router::get('/files/get/{id}', [FileController::class, 'get']);
-Router::post('/files/add', [FileController::class, 'add']);
+Router::post('/files/upload', [FileController::class, 'add']);
 Router::post('/files/rename', [FileController::class, 'rename']);
 Router::post('/files/remove', [FileController::class, 'remove']);
 
@@ -63,7 +63,7 @@ Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWi
 Router::post('/directories/add', [DirectoryController::class, 'add']);
 Router::post('/directories/rename', [DirectoryController::class, 'rename']);
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
-Router::post('/directories/remove/{id}', [DirectoryController::class, 'remove']);
+Router::post('/directories/remove', [DirectoryController::class, 'remove']);
 
 // --- DISPATCH THE ROUTER ---
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

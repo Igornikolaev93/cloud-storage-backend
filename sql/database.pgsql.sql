@@ -1,20 +1,20 @@
 --
--- SQL-скрипт для создания структуры базы данных PostgreSQL для проекта Cloud Storage.
+-- SQL script for creating the PostgreSQL database structure for the Cloud Storage project.
 --
 
--- Включаем расширение для генерации UUID, если оно понадобится в будущем.
+-- Enable the extension for generating UUIDs if needed in the future.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Удаляем таблицы и все зависимые объекты (CASCADE) для чистого старта.
--- Это необходимо, потому что между таблицами есть связи (foreign keys).
+-- Drop tables with CASCADE to ensure a clean start, removing all dependent objects.
 DROP TABLE IF EXISTS "file_shares" CASCADE;
 DROP TABLE IF EXISTS "password_resets" CASCADE;
 DROP TABLE IF EXISTS "files" CASCADE;
+DROP TABLE IF EXISTS "directories" CASCADE;
 DROP TABLE IF EXISTS "users" CASCADE;
 
 --
--- Таблица: users
--- Хранит информацию о пользователях.
+-- Table: users
+-- Stores user account information.
 --
 CREATE TABLE "users" (
     "id" SERIAL PRIMARY KEY,
@@ -25,37 +25,66 @@ CREATE TABLE "users" (
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-COMMENT ON TABLE "users" IS 'Хранит учетные записи пользователей.';
-COMMENT ON COLUMN "users"."password_hash" IS 'Хэш пароля, созданный с помощью password_hash().';
+COMMENT ON TABLE "users" IS 'Stores user accounts.';
+COMMENT ON COLUMN "users"."password_hash" IS 'Password hash created with password_hash().';
 
 --
--- Таблица: files
--- Хранит информацию о загруженных файлах.
+-- Table: directories
+-- Stores information about user-created directories.
+--
+CREATE TABLE "directories" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "parent_id" INTEGER NULL, -- Null for root-level directories
+    "name" VARCHAR(255) NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE, -- Deleting a user deletes their directories
+    CONSTRAINT "fk_parent"
+        FOREIGN KEY("parent_id") 
+        REFERENCES "directories"("id")
+        ON DELETE CASCADE -- Deleting a parent directory deletes its children
+);
+
+CREATE INDEX "idx_directory_user_id" ON "directories"("user_id");
+-- A user cannot have two directories with the same name under the same parent.
+CREATE UNIQUE INDEX "idx_unique_directory_name" ON "directories"("user_id", "parent_id", "name");
+
+
+--
+-- Table: files
+-- Stores metadata about uploaded files.
 --
 CREATE TABLE "files" (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL,
+    "directory_id" INTEGER NULL, -- Null for files in the root directory
     "file_name" VARCHAR(255) NOT NULL,
-    "file_path" VARCHAR(512) NOT NULL UNIQUE, -- Уникальный путь в файловой системе
-    "file_size" BIGINT NOT NULL, -- Размер в байтах
+    "file_path" VARCHAR(512) NOT NULL UNIQUE,
+    "file_size" BIGINT NOT NULL,
     "mime_type" VARCHAR(100) NOT NULL,
     "upload_date" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "access_token" VARCHAR(255) NULL UNIQUE, -- Токен для публичного доступа
+    "access_token" VARCHAR(255) NULL UNIQUE,
     CONSTRAINT "fk_user"
         FOREIGN KEY("user_id") 
         REFERENCES "users"("id")
-        ON DELETE CASCADE -- Удалять файлы пользователя, если удаляется сам пользователь.
+        ON DELETE CASCADE,
+    CONSTRAINT "fk_directory"
+        FOREIGN KEY("directory_id")
+        REFERENCES "directories"("id")
+        ON DELETE SET NULL -- If a directory is deleted, move files to the root
 );
 
-CREATE INDEX "idx_user_id" ON "files"("user_id");
+CREATE INDEX "idx_file_user_id" ON "files"("user_id");
+CREATE INDEX "idx_file_directory_id" ON "files"("directory_id");
 
-COMMENT ON TABLE "files" IS 'Хранит метаданные о загруженных файлах.';
-COMMENT ON COLUMN "files"."access_token" IS 'Токен для генерации публичных ссылок на файл.';
-
+COMMENT ON TABLE "files" IS 'Stores metadata about uploaded files.';
 
 --
--- Таблица: password_resets
--- Хранит токены для сброса пароля.
+-- Table: password_resets
+-- Stores tokens for password resets.
 --
 CREATE TABLE "password_resets" (
     "id" SERIAL PRIMARY KEY,
@@ -65,11 +94,9 @@ CREATE TABLE "password_resets" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX "idx_token" ON "password_resets"("token");
+CREATE INDEX "idx_password_token" ON "password_resets"("token");
 
-COMMENT ON TABLE "password_resets" IS 'Хранит токены для сброса паролей пользователей.';
-
--- Обновление функции для автоматического обновления поля updated_at
+-- Trigger function to automatically update the updated_at field
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -78,9 +105,8 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Применение триггера к таблице users
+-- Apply the trigger to the users table
 CREATE TRIGGER "update_users_updated_at"
 BEFORE UPDATE ON "users"
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
-

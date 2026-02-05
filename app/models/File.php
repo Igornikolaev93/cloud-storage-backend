@@ -8,28 +8,27 @@ use PDOException;
 
 class File
 {
-    // ... (no changes to getDirectoryContents for now, as the error is elsewhere and this part is complex)
+    // --- FIX: The getDirectoryContents method is now fully aligned with the corrected database schema ---
     public static function getDirectoryContents(int $userId, ?int $directoryId = null): array
     {
         $pdo = Database::getConnection();
 
+        // The query for directories remains correct.
         $directoriesQuery = $pdo->prepare(
             'SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND parent_id IS NOT DISTINCT FROM :parent_id'
         );
         $directoriesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $directories = $directoriesQuery->fetchAll(PDO::FETCH_ASSOC);
 
-        // --- FIX: Corrected column names based on the actual database schema ---
-        // 'file_name' is the correct column for the file's name.
-        // 'upload_date' is the correct column for the creation timestamp.
+        // --- FIX: Re-enabled the directory_id check for files ---
+        // Now that the `directory_id` column exists in the `files` table, we can correctly filter files.
         $filesQuery = $pdo->prepare(
-            'SELECT id, file_name as name, upload_date as created_at FROM files WHERE user_id = :user_id /* AND directory_id IS NOT DISTINCT FROM :parent_id */'
+            'SELECT id, file_name as name, upload_date as created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
         );
-        // The `directory_id` column does not exist in the `files` table, so the condition is commented out.
-        // This is a temporary fix to prevent a crash. The schema itself seems to be missing the directory relationship for files.
-        $filesQuery->execute([':user_id' => $userId/*, ':parent_id' => $directoryId*/]);
+        $filesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $files = $filesQuery->fetchAll(PDO::FETCH_ASSOC);
 
+        // The logic for finding the parent directory for the "Up" button is also correct.
         $parentId = null;
         if ($directoryId) {
             $parentQuery = $pdo->prepare('SELECT parent_id FROM directories WHERE id = :id AND user_id = :user_id');
@@ -83,20 +82,20 @@ class File
         return $stmt->execute([':id' => $id, ':user_id' => $userId]);
     }
 
-    // --- FIX: The entire method has been updated to match the correct database schema ---
+    // --- FIX: The createFile method now includes the directory_id ---
     public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         $pdo = Database::getConnection();
-        // Corrected column names: file_name, file_path, file_size.
-        // Removed non-existent `directory_id` from this query.
+        // The `directory_id` is now correctly included in the INSERT statement.
         $stmt = $pdo->prepare(
-            'INSERT INTO files (user_id, file_name, file_path, file_size, mime_type) VALUES (:user_id, :file_name, :file_path, :file_size, :mime_type)'
+            'INSERT INTO files (user_id, directory_id, file_name, file_path, file_size, mime_type) VALUES (:user_id, :directory_id, :file_name, :file_path, :file_size, :mime_type)'
         );
         return $stmt->execute([
             ':user_id' => $userId,
-            ':file_name' => $originalName, // $originalName maps to file_name
-            ':file_path' => $storedName,   // $storedName maps to file_path
-            ':file_size' => $size,         // $size maps to file_size
+            ':directory_id' => $directoryId, // Correctly passing the directory ID.
+            ':file_name' => $originalName,
+            ':file_path' => $storedName,
+            ':file_size' => $size,
             ':mime_type' => $mimeType,
         ]);
     }
@@ -109,7 +108,6 @@ class File
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // --- FIX: Corrected column name from 'name' to 'file_name' ---
     public static function renameFile(int $id, int $userId, string $newName): bool
     {
         $pdo = Database::getConnection();
