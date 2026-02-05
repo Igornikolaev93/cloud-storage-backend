@@ -107,14 +107,14 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
                         fileList.innerHTML += `<tr class="hover:bg-gray-50">
                             <td class="px-6 py-4"><a href="/files?dir=${dir.id}" class="flex items-center text-blue-600"><i data-feather="folder" class="mr-2"></i> ${dir.name}</a></td>
                             <td class="px-6 py-4 text-sm text-gray-500">${new Date(dir.created_at).toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right"><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
+                            <td class="px-6 py-4 text-right"><button class="text-blue-500 mr-2"><i data-feather="save"></i></button><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
                     });
 
                     data.data.files.forEach(file => {
                         fileList.innerHTML += `<tr class="hover:bg-gray-50">
                             <td class="px-6 py-4"><span class="flex items-center"><i data-feather="file" class="mr-2"></i> ${file.name}</span></td>
                             <td class="px-6 py-4 text-sm text-gray-500">${new Date(file.created_at).toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right"><form action="/files/remove" method="post" onsubmit="return confirm('Delete?');"><input type="hidden" name="id" value="${file.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
+                            <td class="px-6 py-4 text-right"><button class="text-blue-500 mr-2"><i data-feather="save"></i></button><form action="/files/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${file.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
                     });
 
                     feather.replace();
