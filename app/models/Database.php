@@ -133,7 +133,7 @@ class Database
     /**
      * Insert a new record into a table and return the last insert ID.
      */
-    public static function insert(string $table, array $data): ?string
+    public static function insert(string $table, array $data): ?int
     {
         $q = self::getQuoteChar();
         $columns = array_keys($data);
@@ -154,13 +154,11 @@ class Database
         $stmt = self::query($sql, $data);
 
         if ($returning) {
-            // For PostgreSQL, fetchColumn() can return an int. We must cast it to a string.
             $id = $stmt->fetchColumn();
-            return $id !== false ? (string)$id : null;
+            return $id !== false ? (int)$id : null;
         } else {
-            // For MySQL, lastInsertId() returns a string or false.
             $lastId = self::getConnection()->lastInsertId();
-            return $lastId !== false ? $lastId : null;
+            return $lastId !== false ? (int)$lastId : null;
         }
     }
     
