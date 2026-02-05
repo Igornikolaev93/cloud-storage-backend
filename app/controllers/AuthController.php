@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Models\PasswordReset;
+use App\Utils\Auth;
 
 class AuthController extends BaseController
 {
@@ -27,7 +28,7 @@ class AuthController extends BaseController
         $user = User::findByEmail($email);
 
         if ($user && password_verify($password, $user['password_hash'])) {
-            $_SESSION['user_id'] = $user['id'];
+            Auth::login($user);
             header('Location: /');
             exit;
         } else {
@@ -51,29 +52,31 @@ class AuthController extends BaseController
             return;
         }
 
-        if (User::findByEmail($email)) {
-            $this->renderView('register', ['error' => 'User with this email already exists.']);
-            return;
-        }
+        try {
+            $userId = User::create([
+                'username' => $username,
+                'email' => $email,
+                'password' => $password,
+            ]);
 
-        $userId = User::create([
-            'username' => $username,
-            'email' => $email,
-            'password' => $password,
-        ]);
-
-        if ($userId) {
-            $_SESSION['user_id'] = $userId;
-            header('Location: /');
-            exit;
-        } else {
-            $this->renderView('register', ['error' => 'An error occurred during registration.']);
+            if ($userId) {
+                $user = User::findById($userId);
+                if ($user) {
+                    Auth::login($user);
+                }
+                header('Location: /');
+                exit;
+            } else {
+                $this->renderView('register', ['error' => 'An error occurred during registration.']);
+            }
+        } catch (\Exception $e) {
+             $this->renderView('register', ['error' => $e->getMessage()]);
         }
     }
 
     public function logout(): void
     {
-        session_destroy();
+        Auth::logout();
         header('Location: /login');
         exit;
     }
@@ -91,9 +94,6 @@ class AuthController extends BaseController
         if ($user) {
             $token = bin2hex(random_bytes(32));
             PasswordReset::create($user['id'], $token);
-            // In a real app, you would send an email with the link:
-            // $resetLink = 'http://' . $_SERVER['HTTP_HOST'] . '/password-reset/' . $token;
-            // mail($email, 'Password Reset', 'Click here to reset your password: ' . $resetLink);
             $this->renderView('password_reset_request', ['message' => 'If an account with that email exists, a password reset link has been sent.']);
         } else {
              $this->renderView('password_reset_request', ['message' => 'If an account with that email exists, a password reset link has been sent.']);

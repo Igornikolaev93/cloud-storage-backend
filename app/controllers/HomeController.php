@@ -3,19 +3,28 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Utils\Auth;
+
 class HomeController extends BaseController
 {
+    public function __construct()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+    
     /**
      * GET /
      * Отображает главную страницу.
      */
     public function index(): void
     {
-        // Просто выводим приветственное сообщение в формате JSON
-        $this->sendJsonResponse([
-            'status' => 'success',
-            'message' => 'Welcome to the Cloud Storage API!',
-            'documentation' => 'Please see the API documentation for available endpoints.'
-        ]);
+        if (Auth::check()) {
+            $this->renderView('home');
+        } else {
+            header('Location: /login');
+            exit;
+        }
     }
 }

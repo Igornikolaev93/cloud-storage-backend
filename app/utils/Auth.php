@@ -15,9 +15,7 @@ class Auth
         $_SESSION['user'] = [
             'id' => $user['id'],
             'email' => $user['email'],
-            'first_name' => $user['first_name'],
-            'last_name' => $user['last_name'],
-            'role' => $user['role']
+            'username' => $user['username']
         ];
     }
 
@@ -44,26 +42,5 @@ class Auth
     public static function user(): ?array
     {
         return $_SESSION['user'] ?? null;
-    }
-
-    /**
-     * Get the current authenticated user's ID.
-     */
-    public static function id(): ?int
-    {
-        $user = self::user();
-        return $user ? (int)$user['id'] : null;
-    }
-
-    /**
-     * Check if the current user has a specific role.
-     */
-    public static function hasRole(string $role): bool
-    {
-        if (!self::check()) {
-            return false;
-        }
-        $user = self::user();
-        return isset($user['role']) && $user['role'] === $role;
     }
 }
