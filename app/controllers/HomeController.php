@@ -17,13 +17,13 @@ class HomeController extends BaseController
     /**
      * GET /
      * Displays the home page.
-     * This method now fetches the user data and passes it to the view.
+     * This method now fetches the user data using the correct Auth::user() method and passes it to the view.
      */
     public function index(): void
     {
         if (Auth::check()) {
-            // Fetch the user data from the Auth utility.
-            $user = Auth::getUser();
+            // Fetch the user data from the Auth utility using the correct method name.
+            $user = Auth::user();
 
             // If for some reason the user is not found in the session, redirect to login.
             if (!$user) {
