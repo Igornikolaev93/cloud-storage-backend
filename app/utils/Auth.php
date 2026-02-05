@@ -26,28 +26,16 @@ class Auth
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             return $user ?: null;
         } catch (\PDOException $e) {
-            // In case of a database error, it's safer to return null
-            // and not leak any potential error messages.
             error_log("Auth::user() PDOException: " . $e->getMessage());
             return null;
         }
     }
 
-    public static function attempt(string $username, string $password): bool
+    public static function login(array $user): void
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, password FROM users WHERE username = :username');
-        $stmt->execute([':username' => $username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($user && password_verify($password, $user['password'])) {
-            // Regenerate session ID to prevent session fixation attacks
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            return true;
-        }
-
-        return false;
+        // Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['id'];
     }
 
     public static function logout(): void
