@@ -30,7 +30,8 @@ define('JWT_ALGO', 'HS256');
 // Все параметры собраны в один массив, как того требует класс Database.php
 define('DB_CONFIG', [
     'driver'   => 'pgsql', // Драйвер базы данных
-    'host'     => 'db.jiqoibgkivhbnoptlome.supabase.co', // Хост
+    //'host'     => 'db.jiqoibgkivhbnoptlome.supabase.co', // Хост
+    'host'     => '123.45.67.89', // Хост
     'port'     => '5432',      // Порт (стандартный для PostgreSQL)
     'dbname'   => 'postgres', // Имя базы данных
     'username' => 'postgres',  // Имя пользователя
