@@ -30,7 +30,7 @@ define('JWT_ALGO', 'HS256');
 // Все параметры собраны в один массив, как того требует класс Database.php
 define('DB_CONFIG', [
     'driver'   => 'pgsql', // Драйвер базы данных
-    'host'     => 'dpg-d624o9shg0os7387am6g-a', // Хост
+    'host'     => 'dpg-d624o9shg0os7387am6g-a.oregon-postgres.render.com', // Хост
     'port'     => '5432',      // Порт (стандартный для PostgreSQL)
     'dbname'   => 'cloude_db', // Имя базы данных
     'username' => 'cloude_user',  // Имя пользователя
