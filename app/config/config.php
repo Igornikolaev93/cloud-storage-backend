@@ -30,12 +30,11 @@ define('JWT_ALGO', 'HS256');
 // Все параметры собраны в один массив, как того требует класс Database.php
 define('DB_CONFIG', [
     'driver'   => 'pgsql', // Драйвер базы данных
-    //'host'     => 'db.jiqoibgkivhbnoptlome.supabase.co', // Хост
-    'host'     => '123.45.67.89', // Хост
+    'host'     => 'dpg-d624o9shg0os7387am6g-a', // Хост
     'port'     => '5432',      // Порт (стандартный для PostgreSQL)
-    'dbname'   => 'postgres', // Имя базы данных
-    'username' => 'postgres',  // Имя пользователя
-    'password' => 'Ybrjkftdbujhm',      // Пароль пользователя
+    'dbname'   => 'cloude_db', // Имя базы данных
+    'username' => 'cloude_user',  // Имя пользователя
+    'password' => 'miiW801cahpwa8KTjGk7LASxtKYnGilT',      // Пароль пользователя
     'charset'  => 'utf8',      // Кодировка
     'options'  => [
         // Режим обработки ошибок: выбрасывать исключения (рекомендуется)
