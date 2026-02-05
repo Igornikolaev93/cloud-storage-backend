@@ -1,18 +1,29 @@
 <?php
 declare(strict_types=1);
 
-// This file defines the application's routes and now correctly loads the controllers.
+// This file defines the application's routes and now correctly loads all necessary files.
 
-// --- MANUAL CONTROLLER LOADING ---
-// Because there is no autoloader, we must require each controller file manually.
+// --- MANUAL FILE LOADING ---
+// Because there is no autoloader, we must require each file manually.
+
+// Controllers
 require_once __DIR__ . '/controllers/BaseController.php';
 require_once __DIR__ . '/controllers/HomeController.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/FileController.php';
 require_once __DIR__ . '/controllers/DirectoryController.php';
-require_once __DIR__ . '/controllers/AdminController.php'; // Included for completeness
-require_once __DIR__ . '/controllers/UserController.php';   // Included for completeness
+require_once __DIR__ . '/controllers/AdminController.php';
+require_once __DIR__ . '/controllers/UserController.php';
 
+// Models
+require_once __DIR__ . '/models/Database.php';
+require_once __DIR__ . '/models/User.php';
+require_once __DIR__ . '/models/File.php';
+require_once __DIR__ . '/models/Directory.php';
+require_once __DIR__ . '/models/Folder.php';
+require_once __DIR__ . '/models/Share.php';
+
+// Utilities
 require_once __DIR__ . '/utils/Router.php';
 
 use App\Controllers\AdminController;
