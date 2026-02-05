@@ -3,122 +3,115 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use PDO;
-use PDOException;
+use Exception;
 
 class File
 {
-    // --- FIX: The getDirectoryContents method is now fully aligned with the corrected database schema ---
-    public static function getDirectoryContents(int $userId, ?int $directoryId = null): array
+    public static function getDirectoryContents(int $userId, ?int $directoryId): array
     {
-        $pdo = Database::getConnection();
-
-        // The query for directories remains correct.
-        $directoriesQuery = $pdo->prepare(
-            'SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND parent_id IS NOT DISTINCT FROM :parent_id'
-        );
-        $directoriesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
-        $directories = $directoriesQuery->fetchAll(PDO::FETCH_ASSOC);
-
-        // --- FIX: Re-enabled the directory_id check for files ---
-        // Now that the `directory_id` column exists in the `files` table, we can correctly filter files.
-        $filesQuery = $pdo->prepare(
-            'SELECT id, file_name as name, upload_date as created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
-        );
-        $filesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
-        $files = $filesQuery->fetchAll(PDO::FETCH_ASSOC);
-
-        // The logic for finding the parent directory for the "Up" button is also correct.
-        $parentId = null;
+        $parentInfo = null;
         if ($directoryId) {
-            $parentQuery = $pdo->prepare('SELECT parent_id FROM directories WHERE id = :id AND user_id = :user_id');
-            $parentQuery->execute([':id' => $directoryId, ':user_id' => $userId]);
-            $result = $parentQuery->fetch(PDO::FETCH_ASSOC);
-            if ($result) {
-                $parentId = $result['parent_id'];
+            $parentDir = self::findDirectoryById($directoryId, $userId);
+            if ($parentDir) {
+                $parentInfo = $parentDir['parent_id'];
             }
         }
 
         return [
-            'directories' => $directories,
-            'files' => $files,
-            'parent_id' => $parentId,
+            'directories' => self::getDirectories($userId, $directoryId),
+            'files' => self::getFiles($userId, $directoryId),
+            'parent_id' => $parentInfo,
         ];
     }
-
-    public static function createDirectory(int $userId, string $name, ?int $parentId = null): bool
+    
+    public static function getDirectories(int $userId, ?int $directoryId): array
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare(
-            'INSERT INTO directories (user_id, name, parent_id) VALUES (:user_id, :name, :parent_id)'
-        );
-        return $stmt->execute([
-            ':user_id' => $userId,
-            ':name' => $name,
-            ':parent_id' => $parentId,
-        ]);
+        $sql = "SELECT * FROM directories WHERE user_id = :user_id AND parent_id IS ". ($directoryId ? ":parent_id" : "NULL");
+        $params = ['user_id' => $userId];
+        if ($directoryId) {
+            $params['parent_id'] = $directoryId;
+        }
+
+        return Database::fetchAll($sql, $params);
     }
 
-    public static function findDirectoryById(int $id, int $userId): ?array
+    public static function getFiles(int $userId, ?int $directoryId): array
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT * FROM directories WHERE id = :id AND user_id = :user_id');
-        $stmt->execute([':id' => $id, ':user_id' => $userId]);
-        $directory = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $directory ?: null;
-    }
+        $sql = "SELECT * FROM files WHERE user_id = :user_id AND directory_id IS ". ($directoryId ? ":directory_id" : "NULL");
+        $params = ['user_id' => $userId];
+        if ($directoryId) {
+            $params['directory_id'] = $directoryId;
+        }
 
-    public static function renameDirectory(int $id, int $userId, string $newName): bool
-    {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('UPDATE directories SET name = :name WHERE id = :id AND user_id = :user_id');
-        return $stmt->execute([':name' => $newName, ':id' => $id, ':user_id' => $userId]);
-    }
-
-    public static function deleteDirectory(int $id, int $userId): bool
-    {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('DELETE FROM directories WHERE id = :id AND user_id = :user_id');
-        return $stmt->execute([':id' => $id, ':user_id' => $userId]);
-    }
-
-    // --- FIX: The createFile method now includes the directory_id ---
-    public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
-    {
-        $pdo = Database::getConnection();
-        // The `directory_id` is now correctly included in the INSERT statement.
-        $stmt = $pdo->prepare(
-            'INSERT INTO files (user_id, directory_id, file_name, file_path, file_size, mime_type) VALUES (:user_id, :directory_id, :file_name, :file_path, :file_size, :mime_type)'
-        );
-        return $stmt->execute([
-            ':user_id' => $userId,
-            ':directory_id' => $directoryId, // Correctly passing the directory ID.
-            ':file_name' => $originalName,
-            ':file_path' => $storedName,
-            ':file_size' => $size,
-            ':mime_type' => $mimeType,
-        ]);
+        return Database::fetchAll($sql, $params);
     }
     
-    public static function findFileById(int $id, int $userId)
+    public static function findDirectoryById(int $directoryId, int $userId): ?array
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT * FROM files WHERE id = :id AND user_id = :user_id");
-        $stmt->execute([':id' => $id, ':user_id' => $userId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return Database::fetchOne(
+            'SELECT * FROM directories WHERE id = :id AND user_id = :user_id',
+            ['id' => $directoryId, 'user_id' => $userId]
+        );
     }
 
-    public static function renameFile(int $id, int $userId, string $newName): bool
+    public static function findFileById(int $fileId, int $userId): ?array
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('UPDATE files SET file_name = :name WHERE id = :id AND user_id = :user_id');
-        return $stmt->execute([':name' => $newName, ':id' => $id, ':user_id' => $userId]);
+        return Database::fetchOne(
+            'SELECT * FROM files WHERE id = :id AND user_id = :user_id',
+            ['id' => $fileId, 'user_id' => $userId]
+        );
+    }
+    
+    public static function createDirectory(int $userId, string $name, ?int $parentId = null): bool
+    {
+        return Database::insert('directories', [
+            'user_id' => $userId,
+            'name' => $name,
+            'parent_id' => $parentId
+        ]) !== null;
     }
 
-    public static function deleteFile(int $id, int $userId): bool
+    public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('DELETE FROM files WHERE id = :id AND user_id = :user_id');
-        return $stmt->execute([':id' => $id, ':user_id' => $userId]);
+        return Database::insert('files', [
+            'user_id' => $userId,
+            'directory_id' => $directoryId,
+            'name' => $originalName,
+            'stored_name' => $storedName,
+            'mime_type' => $mimeType,
+            'size' => $size
+        ]) !== null;
+    }
+    
+    public static function renameFile(int $fileId, int $userId, string $newName): bool
+    {
+        return Database::update('files', ['name' => $newName], ['id' => $fileId, 'user_id' => $userId]) > 0;
+    }
+
+    public static function deleteFile(int $fileId, int $userId): bool
+    {
+        return Database::delete('files', ['id' => $fileId, 'user_id' => $userId]) > 0;
+    }
+
+    public static function renameDirectory(int $dirId, int $userId, string $newName): bool
+    {
+        return Database::update('directories', ['name' => $newName], ['id' => $dirId, 'user_id' => $userId]) > 0;
+    }
+    
+    public static function deleteDirectory(int $dirId, int $userId): bool
+    {
+        // Check for subdirectories
+        $subdirs = self::getDirectories($userId, $dirId);
+        if (count($subdirs) > 0) {
+            throw new Exception('Directory is not empty. Cannot delete a directory with subdirectories.');
+        }
+
+        // Check for files
+        $files = self::getFiles($userId, $dirId);
+        if (count($files) > 0) {
+            throw new Exception('Directory is not empty. Cannot delete a directory with files.');
+        }
+
+        return Database::delete('directories', ['id' => $dirId, 'user_id' => $userId]) > 0;
     }
 }
