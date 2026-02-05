@@ -64,7 +64,6 @@ class FileController extends BaseController
         }
     }
 
-    // --- FIX: The add method now includes robust error handling and reporting. ---
     public function add(): void
     {
         $redirectUrl = '/files';
@@ -94,18 +93,20 @@ class FileController extends BaseController
             $tmpName = $file['tmp_name'];
             $storedName = uniqid('file_', true) . '_' . $originalName;
 
-            // Ensure the upload directory exists and is writable
+            if (!defined('UPLOAD_DIR')) {
+                define('UPLOAD_DIR', __DIR__ . '/../../uploads');
+            }
+
             if (!is_dir(UPLOAD_DIR) || !is_writable(UPLOAD_DIR)) {
-                throw new Exception('The server's upload directory is not configured correctly. Please contact support.');
+                // --- FIX: The string is now correctly quoted to prevent the parse error. ---
+                throw new Exception("The server's upload directory is not configured correctly. Please contact support.");
             }
             
             $uploadPath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $storedName;
 
-            // Move the file and then add it to the database
             if (move_uploaded_file($tmpName, $uploadPath)) {
                 $success = File::createFile($userId, $directoryId, $originalName, $storedName, $file['type'], $file['size']);
                 if (!$success) {
-                    // If the database insert fails, attempt to delete the orphaned file
                     unlink($uploadPath);
                     throw new Exception('Failed to save file metadata to the database.');
                 }
@@ -117,7 +118,6 @@ class FileController extends BaseController
             exit;
 
         } catch (Exception $e) {
-            // --- Redirect with a clear error message for the user ---
             $errorMessage = urlencode($e->getMessage());
             $separator = strpos($redirectUrl, '?') === false ? '?' : '&';
             header('Location: ' . $redirectUrl . $separator . 'error=' . $errorMessage);
