@@ -5,10 +5,12 @@
 -- Включаем расширение для генерации UUID, если оно понадобится в будущем.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Удаляем таблицы в обратном порядке зависимостей, если они уже существуют, для чистого старта.
-DROP TABLE IF EXISTS "password_resets";
-DROP TABLE IF EXISTS "files";
-DROP TABLE IF EXISTS "users";
+-- Удаляем таблицы и все зависимые объекты (CASCADE) для чистого старта.
+-- Это необходимо, потому что между таблицами есть связи (foreign keys).
+DROP TABLE IF EXISTS "file_shares" CASCADE;
+DROP TABLE IF EXISTS "password_resets" CASCADE;
+DROP TABLE IF EXISTS "files" CASCADE;
+DROP TABLE IF EXISTS "users" CASCADE;
 
 --
 -- Таблица: users
