@@ -18,6 +18,13 @@ $user = Auth::user();
 $directoryId = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
 $contents = File::getDirectoryContents($user['id'], $directoryId);
 
+// Determine the correct parent ID for the back link
+$parentId = null;
+if ($directoryId) {
+    $currentDir = File::findDirectoryById($directoryId, $user['id']);
+    $parentId = $currentDir ? $currentDir['parent_id'] : null;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -245,14 +252,14 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
         </div>
 
         <div class="file-grid">
-            <?php if ($directoryId && isset($contents['parent_id'])): ?>
-                <a href="/files?dir=<?= $contents['parent_id'] ?>" class="dir-item">
+            <?php if ($directoryId): ?>
+                <a href="/files<?= $parentId ? '?dir=' . $parentId : '' ?>" class="dir-item">
                     <div class="item-icon"><i class="fas fa-arrow-left"></i></div>
                     <div class="item-name">..</div>
                 </a>
             <?php endif; ?>
 
-            <?php foreach ($contents['directories'] as $directory): ?>
+            <?php if (isset($contents['directories'])) foreach ($contents['directories'] as $directory): ?>
                 <a href="/files?dir=<?= $directory['id'] ?>" class="dir-item">
                     <div class="item-icon"><i class="fas fa-folder"></i></div>
                     <div class="item-name"><?= htmlspecialchars($directory['name']) ?></div>
@@ -263,7 +270,7 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
                 </a>
             <?php endforeach; ?>
 
-            <?php foreach ($contents['files'] as $file): ?>
+            <?php if (isset($contents['files'])) foreach ($contents['files'] as $file): ?>
                 <div class="file-item">
                     <div class="item-icon"><i class="fas fa-file-alt"></i></div>
                     <div class="item-name"><?= htmlspecialchars($file['name']) ?></div>

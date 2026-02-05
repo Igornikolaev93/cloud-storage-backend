@@ -39,4 +39,4 @@ Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWi
 Router::post('/directories/add', [DirectoryController::class, 'add']);
 Router::post('/directories/rename', [DirectoryController::class, 'rename']);
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
-Router::post('/directories/remove/{id}', [DirectoryController::class, 'remove']); // Corrected route
+Router::post('/directories/remove/{id}', [DirectoryController::class, 'remove']);

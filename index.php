@@ -12,25 +12,26 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/app/config/config.php';
 require_once __DIR__ . '/app/models/Database.php';
 
-// --- Automatic Database Setup ---
+// --- Definitive Automatic Database Setup ---
 try {
     $pdo = App\Models\Database::getConnection();
-    // Check if a key table (e.g., files) exists.
-    $pdo->query("SELECT id FROM files LIMIT 1");
+    // This more robust check verifies if the schema is up-to-date.
+    // The 'updated_at' column was added in the correct schema.
+    $pdo->query("SELECT `id`, `updated_at` FROM `directories` LIMIT 1");
 } catch (PDOException $e) {
-    // If the query fails, it's very likely the tables are not set up.
-    // Run the setup script silently and then reload the page.
+    // If the query fails, the database is either missing or has the old, broken schema.
+    // We must run the setup script to create/recreate the tables correctly.
     try {
-        // Capture output to prevent it from messing up the page
+        // Capture output to prevent it from breaking the redirect.
         ob_start();
         require __DIR__ . '/database_setup.php';
         ob_end_clean();
 
-        // Reload the page to see the changes
+        // Reload the page to ensure the application uses the new database.
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     } catch (Exception $setupException) {
-        // If the setup itself fails, we have a bigger problem.
+        // If the setup itself fails, there is a critical configuration error.
         die("FATAL ERROR: Automatic database setup failed. Please check your database configuration and permissions. Details: " . $setupException->getMessage());
     }
 }

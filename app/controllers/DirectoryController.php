@@ -22,12 +22,9 @@ class DirectoryController extends BaseController
      */
     public function add(): void
     {
-        $redirectUrl = '/files';
         try {
             $user = Auth::user();
-            $userId = $user ? $user['id'] : null;
-
-            if (!$userId) {
+            if (!$user) {
                 header('Location: /login');
                 exit;
             }
@@ -35,26 +32,43 @@ class DirectoryController extends BaseController
             $name = isset($_POST['name']) ? trim($_POST['name']) : null;
             $parentId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
+            if (!$name) {
+                throw new Exception('Directory name is required.');
+            }
+            
+            if ($parentId && !File::findDirectoryById($parentId, $user['id'])) {
+                throw new Exception('Parent directory not found.');
+            }
+
+            $success = File::createDirectory($user['id'], $name, $parentId);
+
+            if (!$success) {
+                // This part is new. We are forcing the error to be visible.
+                // We will temporarily use a custom exception to show the underlying issue.
+                throw new Exception('Failed to create directory in the database. Please check database connection and permissions.');
+            }
+
+            $redirectUrl = '/files';
             if ($parentId) {
                 $redirectUrl .= '?dir=' . $parentId;
             }
-
-            if (!$name) {
-                throw new Exception('Directory name is required');
-            }
-            
-            if ($parentId && !File::findDirectoryById($parentId, $userId)) {
-                throw new Exception('Parent directory not found');
-            }
-
-            File::createDirectory($userId, $name, $parentId);
+            header('Location: ' . $redirectUrl);
+            exit;
 
         } catch (Exception $e) {
-            // Log the error message
-            error_log($e->getMessage());
-        } finally {
-            // Redirect back to the files page
-            header('Location: ' . $redirectUrl);
+            // --- CRITICAL DEBUGGING STEP ---
+            // Display the error directly to the screen.
+            // This will stop the silent redirect and show us the root cause.
+            http_response_code(500);
+            echo "<h1>Application Error</h1>";
+            echo "<p>We encountered a critical error while trying to create the directory.</p>";
+            echo "<p><b>Please provide the following error message to support:</b></p>";
+            echo "<pre style='background-color: #f0f0f0; padding: 15px; border: 1px solid #ccc; border-radius: 5px;'>";
+            echo "Error: " . htmlspecialchars($e->getMessage()) . "\n";
+            echo "File: " . $e->getFile() . "\n";
+            echo "Line: " . $e->getLine() . "\n";
+            echo "</pre>";
+            // We stop execution here so the error is not hidden.
             exit;
         }
     }
@@ -114,7 +128,6 @@ class DirectoryController extends BaseController
 
             $dirId = (int)$params['id'];
             
-            // Проверяем, существует ли директория и принадлежит ли она пользователю
             $directory = File::findDirectoryById($dirId, $userId);
             if (!$directory) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Directory not found'], 404);
