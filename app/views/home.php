@@ -1,19 +1,5 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once __DIR__ . '/../utils/Auth.php';
-
-use App\Utils\Auth;
-
-if (!Auth::check()) {
-    header('Location: /login');
-    exit;
-}
-
-$user = Auth::user();
-
+// This file is now a simple template. All logic has been moved to the HomeController.
 ?>
 <!DOCTYPE html>
 <html lang="en">
