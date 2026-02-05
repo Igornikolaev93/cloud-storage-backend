@@ -7,8 +7,6 @@ use App\Models\File;
 use App\Utils\Auth;
 use Exception;
 
-// --- FIX: The controller's constructor has been removed. ---
-// The session is now started reliably in `index.php` and does not need to be managed here.
 class FileController extends BaseController
 {
     public function index(): void
@@ -28,10 +26,7 @@ class FileController extends BaseController
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
-                $this->sendJsonResponse([
-                    'status' => 'error',
-                    'message' => 'Unauthorized'
-                ], 401);
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;
             }
             
@@ -81,7 +76,8 @@ class FileController extends BaseController
                 exit;
             }
             
-            $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+            // --- FIX: Correctly handle an empty directory_id to represent the root directory ---
+            $directoryId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
             if ($directoryId) {
                 $redirectUrl .= '?dir=' . $directoryId;
             }
