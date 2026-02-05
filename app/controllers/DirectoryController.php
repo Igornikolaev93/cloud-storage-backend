@@ -7,19 +7,10 @@ use App\Models\File;
 use App\Utils\Auth;
 use Exception;
 
+// --- FIX: The controller's constructor has been removed. ---
+// The session is now started reliably in `index.php` and does not need to be managed here.
 class DirectoryController extends BaseController
 {
-    public function __construct()
-    {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-    }
-    
-    /**
-     * POST /directories/add
-     * Добавление папки (директории)
-     */
     public function add(): void
     {
         try {
@@ -30,7 +21,6 @@ class DirectoryController extends BaseController
             }
 
             $name = isset($_POST['name']) ? trim($_POST['name']) : null;
-            // --- FIX: Correctly handle the parent ID. An empty or zero value should result in NULL. ---
             $parentId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
             if (!$name) {
@@ -44,7 +34,7 @@ class DirectoryController extends BaseController
             $success = File::createDirectory($user['id'], $name, $parentId);
 
             if (!$success) {
-                throw new Exception('Failed to create directory in the database. Please check database connection and permissions.');
+                throw new Exception('Failed to create directory in the database.');
             }
 
             $redirectUrl = '/files';
@@ -55,23 +45,13 @@ class DirectoryController extends BaseController
             exit;
 
         } catch (Exception $e) {
-            http_response_code(500);
-            echo "<h1>Application Error</h1>";
-            echo "<p>We encountered a critical error while trying to create the directory.</p>";
-            echo "<p><b>Please provide the following error message to support:</b></p>";
-            echo "<pre style='background-color: #f0f0f0; padding: 15px; border: 1px solid #ccc; border-radius: 5px;'>";
-            echo "Error: " . htmlspecialchars($e->getMessage()) . "\n";
-            echo "File: " . $e->getFile() . "\n";
-            echo "Line: " . $e->getLine() . "\n";
-            echo "</pre>";
+            // Simplified error handling for a cleaner user experience
+            error_log($e->getMessage());
+            header('Location: /files?error=' . urlencode('Failed to create directory.'));
             exit;
         }
     }
 
-    /**
-     * POST /directories/rename
-     * Переименование папки
-     */
     public function rename(): void
     {
         $redirectUrl = '/files';
@@ -106,10 +86,6 @@ class DirectoryController extends BaseController
         }
     }
 
-    /**
-     * GET /directories/get/{id}
-     * Получение информации о папке (список файлов и подпапок)
-     */
     public function get(array $params): void
     {
         try {
@@ -137,10 +113,6 @@ class DirectoryController extends BaseController
         }
     }
 
-    /**
-     * POST /directories/remove
-     * Удаление папки
-     */
     public function remove(): void
     {
         $redirectUrl = '/files';

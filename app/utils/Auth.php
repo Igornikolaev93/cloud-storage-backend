@@ -3,45 +3,54 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
-use App\Models\Database;
-use PDO;
-
+// --- FIX: This entire file has been rewritten for a more robust and standard authentication system ---
 class Auth
 {
+    /**
+     * Check if a user is logged in by verifying the existence of user data in the session.
+     *
+     * @return bool True if the user is logged in, false otherwise.
+     */
     public static function check(): bool
     {
-        return isset($_SESSION['user_id']);
+        // A user is considered logged in if the 'user' session variable is set and is an array.
+        return isset($_SESSION['user']);
     }
 
+    /**
+     * Retrieve the currently logged-in user's data from the session.
+     *
+     * @return array|null The user's data as an array, or null if not logged in.
+     */
     public static function user(): ?array
     {
-        if (!self::check()) {
-            return null;
-        }
-
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare('SELECT id, username, email FROM users WHERE id = :id');
-            $stmt->execute([':id' => $_SESSION['user_id']]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $user ?: null;
-        } catch (\PDOException $e) {
-            error_log("Auth::user() PDOException: " . $e->getMessage());
-            return null;
-        }
+        // This now directly returns the user array stored in the session, avoiding extra database calls.
+        return $_SESSION['user'] ?? null;
     }
 
+    /**
+     * Log a user in by storing their complete data in the session.
+     *
+     * @param array $user The user data array, typically from a User::findById or User::findByEmail call.
+     */
     public static function login(array $user): void
     {
-        // Regenerate session ID to prevent session fixation attacks
+        // Regenerate the session ID to prevent session fixation attacks.
         session_regenerate_id(true);
-        $_SESSION['user_id'] = $user['id'];
+
+        // Store the entire user array in the session. This is the critical fix.
+        $_SESSION['user'] = $user;
     }
 
+    /**
+     * Log the user out by destroying the session and clearing session data.
+     */
     public static function logout(): void
     {
+        // Unset all session variables.
         $_SESSION = [];
 
+        // If using cookies, expire the session cookie.
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             setcookie(session_name(), '', time() - 42000,
@@ -50,6 +59,7 @@ class Auth
             );
         }
 
+        // Finally, destroy the session.
         session_destroy();
     }
 }

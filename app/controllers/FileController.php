@@ -7,15 +7,10 @@ use App\Models\File;
 use App\Utils\Auth;
 use Exception;
 
+// --- FIX: The controller's constructor has been removed. ---
+// The session is now started reliably in `index.php` and does not need to be managed here.
 class FileController extends BaseController
 {
-    public function __construct()
-    {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-    }
-
     public function index(): void
     {
         if (Auth::check()) {
@@ -40,7 +35,7 @@ class FileController extends BaseController
                 return;
             }
             
-            $contents = File::getDirectoryContents($userId, null); // null для корневой директории
+            $contents = File::getDirectoryContents($userId, null); // null for the root directory
             $this->sendJsonResponse(['status' => 'success', 'data' => $contents]);
 
         } catch (Exception $e) {
@@ -120,10 +115,8 @@ class FileController extends BaseController
             }
 
         } catch (Exception $e) {
-            // Log the error message
             error_log($e->getMessage());
         } finally {
-            // Redirect back to the files page
             header('Location: ' . $redirectUrl);
             exit;
         }
@@ -193,90 +186,6 @@ class FileController extends BaseController
         } finally {
             header('Location: ' . $redirectUrl);
             exit;
-        }
-    }
-    
-    // --- Новые методы для управления доступом ---
-
-    /**
-     * GET /files/share/{id}
-     * Получить список пользователей, имеющих доступ к файлу
-     */
-    public function getSharedUsers(array $params): void
-    {
-        try {
-            $user = Auth::user();
-            $ownerId = $user ? $user['id'] : null;
-
-            if (!$ownerId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
-            }
-
-            $fileId = (int)$params['id'];
-            $users = File::getSharedWith($fileId, $ownerId);
-            $this->sendJsonResponse(['status' => 'success', 'data' => $users]);
-
-        } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * PUT /files/share/{id}/{user_id}
-     * Добавить доступ к файлу пользователю
-     */
-    public function shareWithUser(array $params): void
-    {
-        try {
-            $user = Auth::user();
-            $ownerId = $user ? $user['id'] : null;
-
-            if (!$ownerId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
-            }
-
-            $fileId = (int)$params['id'];
-            $userIdToShareWith = (int)$params['user_id'];
-
-            if (File::shareFile($fileId, $ownerId, $userIdToShareWith)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'File shared successfully']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to share file'], 500);
-            }
-
-        } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * DELETE /files/share/{id}/{user_id}
-     * Прекратить доступ к файлу для пользователя
-     */
-    public function unshareWithUser(array $params): void
-    {
-        try {
-            $user = Auth::user();
-            $ownerId = $user ? $user['id'] : null;
-
-            if (!$ownerId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
-            }
-
-            $fileId = (int)$params['id'];
-            $userIdToUnshare = (int)$params['user_id'];
-
-            if (File::unshareFile($fileId, $ownerId, $userIdToUnshare)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'Access to file has been revoked']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to revoke access'], 500);
-            }
-
-        } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 }

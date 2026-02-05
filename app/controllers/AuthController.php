@@ -5,18 +5,12 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Utils\Auth;
-use App\Utils\Router;
 use Exception;
 
+// --- FIX: The controller's constructor has been removed. ---
+// The session is now started reliably in `index.php` and does not need to be managed here.
 class AuthController extends BaseController
 {
-    public function __construct()
-    {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-    }
-
     public function showRegistrationForm(): void
     {
         $this->renderView('register');
@@ -34,11 +28,13 @@ class AuthController extends BaseController
                 throw new Exception('Passwords do not match.');
             }
             
-            $user = User::create(['username' => $username, 'email' => $email, 'password' => $password]);
+            $userId = User::create(['username' => $username, 'email' => $email, 'password' => $password]);
 
-            if (!$user) {
+            if (!$userId) {
                 throw new Exception('Registration failed. The email might already be in use.');
             }
+
+            $user = User::findById($userId);
 
             Auth::login($user);
             
@@ -55,15 +51,12 @@ class AuthController extends BaseController
         $this->renderView('login');
     }
 
-    // --- FIX: Corrected the login method to use email instead of username ---
     public function login(): void
     {
         try {
-            // The form will now submit an 'email' field instead of 'username'.
             $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            // The User model uses `findByEmail`, not `findByUsername`.
             $user = User::findByEmail($email);
 
             if (!$user || !password_verify($password, $user['password_hash'])) {
