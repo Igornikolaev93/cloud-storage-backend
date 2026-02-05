@@ -30,7 +30,8 @@ class DirectoryController extends BaseController
             }
 
             $name = isset($_POST['name']) ? trim($_POST['name']) : null;
-            $parentId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+            // --- FIX: Correctly handle the parent ID. An empty or zero value should result in NULL. ---
+            $parentId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
             if (!$name) {
                 throw new Exception('Directory name is required.');
@@ -43,8 +44,6 @@ class DirectoryController extends BaseController
             $success = File::createDirectory($user['id'], $name, $parentId);
 
             if (!$success) {
-                // This part is new. We are forcing the error to be visible.
-                // We will temporarily use a custom exception to show the underlying issue.
                 throw new Exception('Failed to create directory in the database. Please check database connection and permissions.');
             }
 
@@ -56,9 +55,6 @@ class DirectoryController extends BaseController
             exit;
 
         } catch (Exception $e) {
-            // --- CRITICAL DEBUGGING STEP ---
-            // Display the error directly to the screen.
-            // This will stop the silent redirect and show us the root cause.
             http_response_code(500);
             echo "<h1>Application Error</h1>";
             echo "<p>We encountered a critical error while trying to create the directory.</p>";
@@ -68,7 +64,6 @@ class DirectoryController extends BaseController
             echo "File: " . $e->getFile() . "\n";
             echo "Line: " . $e->getLine() . "\n";
             echo "</pre>";
-            // We stop execution here so the error is not hidden.
             exit;
         }
     }
