@@ -29,25 +29,14 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f0f2f5;
+            background-color: #f8f9fb;
             margin: 0;
             color: #333;
         }
 
         .container {
-            display: flex;
-        }
-
-        .sidebar {
-            width: 280px;
-            background-color: #ffffff;
-            padding: 20px;
-            height: 100vh;
-            box-sizing: border-box;
-        }
-
-        .main-content {
-            flex-grow: 1;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
         }
 
@@ -55,11 +44,11 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 28px;
             color: #1a1a1a;
             margin: 0;
         }
@@ -67,11 +56,11 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
         .search-bar {
             display: flex;
             align-items: center;
-            background-color: #f0f2f5;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 5px 10px;
-            width: 100%;
-            margin-bottom: 20px;
+            padding: 8px 15px;
+            width: 300px;
         }
 
         .search-bar i {
@@ -97,56 +86,66 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
         .filters .recent-filter {
             color: #333;
             background: #fff;
-            padding: 5px 10px;
-            border-radius: 5px;
-            border: 1px solid #eee;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
         }
 
         .view-options button {
-            border: none;
-            background: none;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            border-radius: 8px;
             cursor: pointer;
             color: #888;
             font-size: 18px;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
         }
 
         .file-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 20px;
+            position: relative;
         }
 
         .file-item, .dir-item {
             background-color: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 15px;
             display: flex;
             flex-direction: column;
-            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
             transition: all 0.2s ease-in-out;
             position: relative;
         }
         
         .file-item:hover, .dir-item:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            border-color: #4a90e2;
         }
 
         .item-icon {
-            font-size: 24px;
-            margin-bottom: 15px;
+            font-size: 36px;
+            margin-bottom: 20px;
         }
         
-        .dir-item .item-icon { color: #4a90e2; }
-        .file-item .item-icon { color: #b8b8b8; }
+        .dir-item .item-icon { color: #5eb5ff; }
+        .file-item .item-icon { color: #a9c5e8; }
         
         .item-name {
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 5px;
+            font-size: 16px;
         }
 
         .item-date {
-            font-size: 12px;
+            font-size: 13px;
             color: #888;
         }
 
@@ -161,12 +160,13 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
             background: none;
             color: #888;
             cursor: pointer;
+            font-size: 16px;
         }
 
         .fab-container {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
         }
         
         .fab {
@@ -174,11 +174,14 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            font-size: 24px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Modal styles */
@@ -191,17 +194,18 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
             width: 100%; 
             height: 100%; 
             overflow: auto; 
-            background-color: rgba(0,0,0,0.4); 
+            background-color: rgba(0,0,0,0.5); 
         }
 
         .modal-content {
             background-color: #fefefe;
-            margin: 15% auto; 
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%; 
-            max-width: 500px;
-            border-radius: 8px;
+            margin: 10% auto; 
+            padding: 25px;
+            border: none;
+            width: 90%; 
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
         .close-button {
@@ -221,13 +225,13 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="container">
         <div class="header">
             <h1>Your Dribbbox</h1>
-        </div>
-        <div class="search-bar">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search Folder">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search Folder">
+            </div>
         </div>
         
         <div class="filters">
@@ -235,13 +239,13 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
                 Recent <i class="fas fa-chevron-down"></i>
             </div>
             <div class="view-options">
-                <button><i class="fas fa-list"></i></button>
-                <button><i class="fas fa-th-large"></i></button>
+                <button title="List View"><i class="fas fa-list"></i></button>
+                <button title="Grid View"><i class="fas fa-th-large"></i></button>
             </div>
         </div>
 
         <div class="file-grid">
-            <?php if ($directoryId): ?>
+            <?php if ($directoryId && isset($contents['parent_id'])): ?>
                 <a href="/files?dir=<?= $contents['parent_id'] ?>" class="dir-item">
                     <div class="item-icon"><i class="fas fa-arrow-left"></i></div>
                     <div class="item-name">..</div>
@@ -252,7 +256,7 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
                 <a href="/files?dir=<?= $directory['id'] ?>" class="dir-item">
                     <div class="item-icon"><i class="fas fa-folder"></i></div>
                     <div class="item-name"><?= htmlspecialchars($directory['name']) ?></div>
-                    <div class="item-date"><?= date('F d, Y', strtotime($directory['created_at'])) ?></div>
+                    <div class="item-date"><?= date('M d, Y', strtotime($directory['created_at'])) ?></div>
                     <div class="item-actions">
                         <button><i class="fas fa-ellipsis-h"></i></button>
                     </div>
@@ -261,19 +265,19 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
 
             <?php foreach ($contents['files'] as $file): ?>
                 <div class="file-item">
-                    <div class="item-icon"><i class="fas fa-file"></i></div>
+                    <div class="item-icon"><i class="fas fa-file-alt"></i></div>
                     <div class="item-name"><?= htmlspecialchars($file['name']) ?></div>
-                    <div class="item-date"><?= date('F d, Y', strtotime($file['created_at'])) ?></div>
+                    <div class="item-date"><?= date('M d, Y', strtotime($file['created_at'])) ?></div>
                     <div class="item-actions">
                         <button><i class="fas fa-ellipsis-h"></i></button>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-
-        <div class="fab-container">
-            <button class="fab" id="fab-button">+</button>
-        </div>
+    </div>
+    
+    <div class="fab-container">
+        <button class="fab" id="fab-button">+</button>
     </div>
     
     <!-- Modals -->
@@ -308,7 +312,6 @@ $contents = File::getDirectoryContents($user['id'], $directoryId);
         var closeButtons = document.getElementsByClassName("close-button");
 
         fabButton.onclick = function() {
-            // This is a simplified behavior. A real implementation could show a menu.
             if (confirm("Create a new Directory? (Cancel to upload a file)")) {
                 createDirModal.style.display = "block";
             } else {

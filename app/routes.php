@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 // --- ГАРАНТИРОВАННАЯ ЗАГРУЗКА ROUTER ---
-// Подключаем файл Router.php НАПРЯМУЮ в этом файле.
-// Это самый надежный способ решить проблему "Class not found".
 require_once __DIR__ . '/utils/Router.php';
 
 use App\Controllers\AdminController;
@@ -12,7 +10,6 @@ use App\Controllers\FileController;
 use App\Controllers\DirectoryController;
 use App\Controllers\HomeController;
 use App\Controllers\UserController;
-// `use App\Utils\Router;` теперь не является строго обязательным, но оставим для ясности
 use App\Utils\Router;
 
 // Главная страница
@@ -24,21 +21,6 @@ Router::post('/register', [AuthController::class, 'handleRegister']);
 Router::get('/login', [AuthController::class, 'showLoginForm']);
 Router::post('/login', [AuthController::class, 'handleLogin']);
 Router::get('/logout', [AuthController::class, 'logout']);
-
-// Сброс пароля
-Router::get('/password/reset', [AuthController::class, 'showPasswordResetRequestForm']);
-Router::post('/password/reset', [AuthController::class, 'handlePasswordResetRequest']);
-Router::get('/password/reset/{token}', [AuthController::class, 'showPasswordResetForm']);
-Router::post('/password/reset/{token}', [AuthController::class, 'handlePasswordReset']);
-
-// --- Поиск пользователя ---
-Router::get('/user/search/{email}', [UserController::class, 'search']);
-
-// --- Администрирование пользователей ---
-Router::get('/admin/users/list', [AdminController::class, 'listUsers']);
-Router::get('/admin/users/get/{id}', [AdminController::class, 'getUser']);
-Router::delete('/admin/users/delete/{id}', [AdminController::class, 'deleteUser']);
-Router::put('/admin/users/update/{id}', [AdminController::class, 'updateUser']);
 
 // --- Управление файлами ---
 Router::get('/files', [FileController::class, 'index']);
@@ -57,4 +39,4 @@ Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWi
 Router::post('/directories/add', [DirectoryController::class, 'add']);
 Router::post('/directories/rename', [DirectoryController::class, 'rename']);
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
-Router::post('/directories/remove', [DirectoryController::class, 'remove']);
+Router::post('/directories/remove/{id}', [DirectoryController::class, 'remove']); // Corrected route
