@@ -33,9 +33,12 @@ class AuthController extends BaseController
             if ($password !== $passwordConfirm) {
                 throw new Exception('Passwords do not match.');
             }
+            
+            $user = User::create(['username' => $username, 'email' => $email, 'password' => $password]);
 
-            $userId = User::create($username, $email, $password);
-            $user = User::findById($userId);
+            if (!$user) {
+                throw new Exception('Registration failed. The email might already be in use.');
+            }
 
             Auth::login($user);
             
@@ -52,16 +55,19 @@ class AuthController extends BaseController
         $this->renderView('login');
     }
 
+    // --- FIX: Corrected the login method to use email instead of username ---
     public function login(): void
     {
         try {
-            $username = $_POST['username'] ?? '';
+            // The form will now submit an 'email' field instead of 'username'.
+            $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            $user = User::findByUsername($username);
+            // The User model uses `findByEmail`, not `findByUsername`.
+            $user = User::findByEmail($email);
 
             if (!$user || !password_verify($password, $user['password_hash'])) {
-                throw new Exception('Invalid username or password.');
+                throw new Exception('Invalid email or password.');
             }
 
             Auth::login($user);
