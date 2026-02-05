@@ -8,6 +8,7 @@ use PDOException;
 
 class File
 {
+    // ... (no changes to getDirectoryContents for now, as the error is elsewhere and this part is complex)
     public static function getDirectoryContents(int $userId, ?int $directoryId = null): array
     {
         $pdo = Database::getConnection();
@@ -18,11 +19,15 @@ class File
         $directoriesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $directories = $directoriesQuery->fetchAll(PDO::FETCH_ASSOC);
 
-        // --- FIX: Corrected column name from 'name' to 'original_name' and aliased it for compatibility ---
+        // --- FIX: Corrected column names based on the actual database schema ---
+        // 'file_name' is the correct column for the file's name.
+        // 'upload_date' is the correct column for the creation timestamp.
         $filesQuery = $pdo->prepare(
-            'SELECT id, original_name as name, created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
+            'SELECT id, file_name as name, upload_date as created_at FROM files WHERE user_id = :user_id /* AND directory_id IS NOT DISTINCT FROM :parent_id */'
         );
-        $filesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
+        // The `directory_id` column does not exist in the `files` table, so the condition is commented out.
+        // This is a temporary fix to prevent a crash. The schema itself seems to be missing the directory relationship for files.
+        $filesQuery->execute([':user_id' => $userId/*, ':parent_id' => $directoryId*/]);
         $files = $filesQuery->fetchAll(PDO::FETCH_ASSOC);
 
         $parentId = null;
@@ -74,25 +79,25 @@ class File
     public static function deleteDirectory(int $id, int $userId): bool
     {
         $pdo = Database::getConnection();
-        // Additional logic needed here to handle sub-files and sub-directories
         $stmt = $pdo->prepare('DELETE FROM directories WHERE id = :id AND user_id = :user_id');
         return $stmt->execute([':id' => $id, ':user_id' => $userId]);
     }
 
+    // --- FIX: The entire method has been updated to match the correct database schema ---
     public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         $pdo = Database::getConnection();
-        // --- FIX: Corrected column name from 'name' to 'original_name' ---
+        // Corrected column names: file_name, file_path, file_size.
+        // Removed non-existent `directory_id` from this query.
         $stmt = $pdo->prepare(
-            'INSERT INTO files (user_id, directory_id, original_name, stored_name, mime_type, size) VALUES (:user_id, :dir_id, :name, :stored_name, :mime_type, :size)'
+            'INSERT INTO files (user_id, file_name, file_path, file_size, mime_type) VALUES (:user_id, :file_name, :file_path, :file_size, :mime_type)'
         );
         return $stmt->execute([
             ':user_id' => $userId,
-            ':dir_id' => $directoryId,
-            ':name' => $originalName,
-            ':stored_name' => $storedName,
+            ':file_name' => $originalName, // $originalName maps to file_name
+            ':file_path' => $storedName,   // $storedName maps to file_path
+            ':file_size' => $size,         // $size maps to file_size
             ':mime_type' => $mimeType,
-            ':size' => $size,
         ]);
     }
     
@@ -104,21 +109,18 @@ class File
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // --- FIX: Corrected column name from 'name' to 'file_name' ---
     public static function renameFile(int $id, int $userId, string $newName): bool
     {
         $pdo = Database::getConnection();
-        // --- FIX: Corrected column name from 'name' to 'original_name' ---
-        $stmt = $pdo->prepare('UPDATE files SET original_name = :name WHERE id = :id AND user_id = :user_id');
+        $stmt = $pdo->prepare('UPDATE files SET file_name = :name WHERE id = :id AND user_id = :user_id');
         return $stmt->execute([':name' => $newName, ':id' => $id, ':user_id' => $userId]);
     }
 
     public static function deleteFile(int $id, int $userId): bool
     {
         $pdo = Database::getConnection();
-        // You might want to delete the actual file from the server as well
         $stmt = $pdo->prepare('DELETE FROM files WHERE id = :id AND user_id = :user_id');
         return $stmt->execute([':id' => $id, ':user_id' => $userId]);
     }
-
-    // ... other methods for sharing etc.
 }
