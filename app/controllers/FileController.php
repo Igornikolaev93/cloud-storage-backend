@@ -30,7 +30,7 @@ class FileController extends BaseController
                 return;
             }
             
-            $contents = File::getDirectoryContents($userId, null); // null for the root directory
+            $contents = File::getDirectoryContents($userId, null);
             $this->sendJsonResponse(['status' => 'success', 'data' => $contents]);
 
         } catch (Exception $e) {
@@ -64,94 +64,67 @@ class FileController extends BaseController
         }
     }
 
+    // --- FIX: The add method now includes robust error handling and reporting. ---
     public function add(): void
     {
         $redirectUrl = '/files';
+        $directoryId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+        if ($directoryId) {
+            $redirectUrl .= '?dir=' . $directoryId;
+        }
+
         try {
             $user = Auth::user();
-            $userId = $user ? $user['id'] : null;
-
-            if (!$userId) {
+            if (!$user) {
                 header('Location: /login');
                 exit;
             }
-            
-            // --- FIX: Correctly handle an empty directory_id to represent the root directory ---
-            $directoryId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
-            if ($directoryId) {
-                $redirectUrl .= '?dir=' . $directoryId;
-            }
+            $userId = $user['id'];
 
             if ($directoryId && !File::findDirectoryById($directoryId, $userId)) {
-                throw new Exception('Directory not found');
+                throw new Exception('The destination directory does not exist.');
             }
 
-            if (empty($_FILES['file'])) {
-                throw new Exception('No file uploaded');
+            if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('File upload failed. Please choose a file and try again.');
             }
 
             $file = $_FILES['file'];
-            $originalName = $file['name'];
-            $mimeType = $file['type'];
-            $size = $file['size'];
+            $originalName = basename($file['name']);
             $tmpName = $file['tmp_name'];
-            
             $storedName = uniqid('file_', true) . '_' . $originalName;
 
-            if (!defined('UPLOAD_DIR')) {
-                define('UPLOAD_DIR', __DIR__ . '/../../uploads');
+            // Ensure the upload directory exists and is writable
+            if (!is_dir(UPLOAD_DIR) || !is_writable(UPLOAD_DIR)) {
+                throw new Exception('The server's upload directory is not configured correctly. Please contact support.');
             }
             
             $uploadPath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $storedName;
 
+            // Move the file and then add it to the database
             if (move_uploaded_file($tmpName, $uploadPath)) {
-                File::createFile($userId, $directoryId, $originalName, $storedName, $mimeType, $size);
+                $success = File::createFile($userId, $directoryId, $originalName, $storedName, $file['type'], $file['size']);
+                if (!$success) {
+                    // If the database insert fails, attempt to delete the orphaned file
+                    unlink($uploadPath);
+                    throw new Exception('Failed to save file metadata to the database.');
+                }
             } else {
-                throw new Exception('Failed to move uploaded file');
+                throw new Exception('Failed to move the uploaded file. Check server permissions.');
             }
 
-        } catch (Exception $e) {
-            error_log($e->getMessage());
-        } finally {
             header('Location: ' . $redirectUrl);
+            exit;
+
+        } catch (Exception $e) {
+            // --- Redirect with a clear error message for the user ---
+            $errorMessage = urlencode($e->getMessage());
+            $separator = strpos($redirectUrl, '?') === false ? '?' : '&';
+            header('Location: ' . $redirectUrl . $separator . 'error=' . $errorMessage);
             exit;
         }
     }
-
-    public function rename(): void
-    {
-        $redirectUrl = '/files';
-        try {
-            $user = Auth::user();
-            $userId = $user ? $user['id'] : null;
-
-            if (!$userId) {
-                header('Location: /login');
-                exit;
-            }
-
-            $fileId = isset($_POST['id']) ? (int)$_POST['id'] : null;
-            $newName = isset($_POST['name']) ? trim($_POST['name']) : null;
-            $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
-
-            if ($directoryId) {
-                $redirectUrl .= '?dir=' . $directoryId;
-            }
-
-            if (!$fileId || !$newName) {
-                throw new Exception('File ID and new name are required');
-            }
-
-            File::renameFile($fileId, $userId, $newName);
-
-        } catch (Exception $e) {
-            error_log($e->getMessage());
-        } finally {
-            header('Location: ' . $redirectUrl);
-            exit;
-        }
-    }
-
+    
     public function remove(): void
     {
         $redirectUrl = '/files';

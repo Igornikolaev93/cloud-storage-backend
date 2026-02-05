@@ -7,7 +7,6 @@ use Exception;
 
 class File
 {
-    // --- Main method to get all contents of a directory ---
     public static function getDirectoryContents(int $userId, ?int $directoryId): array
     {
         $parentInfo = null;
@@ -25,11 +24,10 @@ class File
         ];
     }
     
-    // --- FIX: The SQL query logic is corrected to properly fetch subdirectories. ---
-    // It now correctly uses `parent_id = :parent_id` for subdirectories and `parent_id IS NULL` for the root.
     public static function getDirectories(int $userId, ?int $directoryId): array
     {
-        $sql = "SELECT * FROM directories WHERE user_id = :user_id AND " . 
+        // --- FIX: Aliased `creation_date` to `created_at` to match the frontend's expectation. ---
+        $sql = "SELECT id, name, creation_date as created_at, parent_id FROM directories WHERE user_id = :user_id AND " . 
                ($directoryId ? "parent_id = :parent_id" : "parent_id IS NULL");
         
         $params = ['user_id' => $userId];
@@ -40,11 +38,10 @@ class File
         return Database::fetchAll($sql, $params);
     }
 
-    // --- FIX: The SQL query logic is corrected to properly fetch files within a directory. ---
-    // It now correctly uses `directory_id = :directory_id` for subdirectories and `directory_id IS NULL` for the root.
     public static function getFiles(int $userId, ?int $directoryId): array
     {
-        $sql = "SELECT * FROM files WHERE user_id = :user_id AND " . 
+        // --- FIX: Aliased column names (`file_name`, `upload_date`) to match the frontend's expectations. ---
+        $sql = "SELECT id, file_name as name, upload_date as created_at, file_size as size FROM files WHERE user_id = :user_id AND " . 
                ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
 
         $params = ['user_id' => $userId];
@@ -80,21 +77,22 @@ class File
         ]) !== null;
     }
 
+    // --- FIX: The column names now correctly match the `files` table schema in the database. ---
     public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         return Database::insert('files', [
             'user_id' => $userId,
             'directory_id' => $directoryId,
-            'name' => $originalName,
-            'stored_name' => $storedName,
+            'file_name' => $originalName,   // Was 'name'
+            'file_path' => $storedName,     // Was 'stored_name'
             'mime_type' => $mimeType,
-            'size' => $size
+            'file_size' => $size             // Was 'size'
         ]) !== null;
     }
     
     public static function renameFile(int $fileId, int $userId, string $newName): bool
     {
-        return Database::update('files', ['name' => $newName], ['id' => $fileId, 'user_id' => $userId]) > 0;
+        return Database::update('files', ['file_name' => $newName], ['id' => $fileId, 'user_id' => $userId]) > 0;
     }
 
     public static function deleteFile(int $fileId, int $userId): bool
