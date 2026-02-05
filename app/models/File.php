@@ -7,6 +7,7 @@ use Exception;
 
 class File
 {
+    // --- Main method to get all contents of a directory ---
     public static function getDirectoryContents(int $userId, ?int $directoryId): array
     {
         $parentInfo = null;
@@ -24,9 +25,13 @@ class File
         ];
     }
     
+    // --- FIX: The SQL query logic is corrected to properly fetch subdirectories. ---
+    // It now correctly uses `parent_id = :parent_id` for subdirectories and `parent_id IS NULL` for the root.
     public static function getDirectories(int $userId, ?int $directoryId): array
     {
-        $sql = "SELECT * FROM directories WHERE user_id = :user_id AND parent_id IS ". ($directoryId ? ":parent_id" : "NULL");
+        $sql = "SELECT * FROM directories WHERE user_id = :user_id AND " . 
+               ($directoryId ? "parent_id = :parent_id" : "parent_id IS NULL");
+        
         $params = ['user_id' => $userId];
         if ($directoryId) {
             $params['parent_id'] = $directoryId;
@@ -35,9 +40,13 @@ class File
         return Database::fetchAll($sql, $params);
     }
 
+    // --- FIX: The SQL query logic is corrected to properly fetch files within a directory. ---
+    // It now correctly uses `directory_id = :directory_id` for subdirectories and `directory_id IS NULL` for the root.
     public static function getFiles(int $userId, ?int $directoryId): array
     {
-        $sql = "SELECT * FROM files WHERE user_id = :user_id AND directory_id IS ". ($directoryId ? ":directory_id" : "NULL");
+        $sql = "SELECT * FROM files WHERE user_id = :user_id AND " . 
+               ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
+
         $params = ['user_id' => $userId];
         if ($directoryId) {
             $params['directory_id'] = $directoryId;
@@ -100,13 +109,11 @@ class File
     
     public static function deleteDirectory(int $dirId, int $userId): bool
     {
-        // Check for subdirectories
         $subdirs = self::getDirectories($userId, $dirId);
         if (count($subdirs) > 0) {
             throw new Exception('Directory is not empty. Cannot delete a directory with subdirectories.');
         }
 
-        // Check for files
         $files = self::getFiles($userId, $dirId);
         if (count($files) > 0) {
             throw new Exception('Directory is not empty. Cannot delete a directory with files.');
