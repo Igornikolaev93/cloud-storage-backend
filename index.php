@@ -35,5 +35,5 @@ try {
 }
 
 // --- ROUTING ---
-// If the database is set up correctly, proceed to load the application router.
-require_once __DIR__ . '/app/router.php';
+// The file containing the route definitions is app/routes.php
+require_once __DIR__ . '/app/routes.php';
