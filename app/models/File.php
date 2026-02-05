@@ -12,14 +12,16 @@ class File
     {
         $pdo = Database::getConnection();
 
+        // --- FIX: Replaced MySQL's <=> with PostgreSQL's IS NOT DISTINCT FROM ---
         $directoriesQuery = $pdo->prepare(
-            'SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND parent_id <=> :parent_id'
+            'SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND parent_id IS NOT DISTINCT FROM :parent_id'
         );
         $directoriesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $directories = $directoriesQuery->fetchAll(PDO::FETCH_ASSOC);
 
+        // --- FIX: Replaced MySQL's <=> with PostgreSQL's IS NOT DISTINCT FROM ---
         $filesQuery = $pdo->prepare(
-            'SELECT id, name, created_at FROM files WHERE user_id = :user_id AND directory_id <=> :parent_id'
+            'SELECT id, name, created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
         );
         $filesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $files = $filesQuery->fetchAll(PDO::FETCH_ASSOC);
