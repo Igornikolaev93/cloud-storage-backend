@@ -12,16 +12,15 @@ class File
     {
         $pdo = Database::getConnection();
 
-        // --- FIX: Replaced MySQL's <=> with PostgreSQL's IS NOT DISTINCT FROM ---
         $directoriesQuery = $pdo->prepare(
             'SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND parent_id IS NOT DISTINCT FROM :parent_id'
         );
         $directoriesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $directories = $directoriesQuery->fetchAll(PDO::FETCH_ASSOC);
 
-        // --- FIX: Replaced MySQL's <=> with PostgreSQL's IS NOT DISTINCT FROM ---
+        // --- FIX: Corrected column name from 'name' to 'original_name' and aliased it for compatibility ---
         $filesQuery = $pdo->prepare(
-            'SELECT id, name, created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
+            'SELECT id, original_name as name, created_at FROM files WHERE user_id = :user_id AND directory_id IS NOT DISTINCT FROM :parent_id'
         );
         $filesQuery->execute([':user_id' => $userId, ':parent_id' => $directoryId]);
         $files = $filesQuery->fetchAll(PDO::FETCH_ASSOC);
@@ -83,8 +82,9 @@ class File
     public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         $pdo = Database::getConnection();
+        // --- FIX: Corrected column name from 'name' to 'original_name' ---
         $stmt = $pdo->prepare(
-            'INSERT INTO files (user_id, directory_id, name, stored_name, mime_type, size) VALUES (:user_id, :dir_id, :name, :stored_name, :mime_type, :size)'
+            'INSERT INTO files (user_id, directory_id, original_name, stored_name, mime_type, size) VALUES (:user_id, :dir_id, :name, :stored_name, :mime_type, :size)'
         );
         return $stmt->execute([
             ':user_id' => $userId,
@@ -107,7 +107,8 @@ class File
     public static function renameFile(int $id, int $userId, string $newName): bool
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('UPDATE files SET name = :name WHERE id = :id AND user_id = :user_id');
+        // --- FIX: Corrected column name from 'name' to 'original_name' ---
+        $stmt = $pdo->prepare('UPDATE files SET original_name = :name WHERE id = :id AND user_id = :user_id');
         return $stmt->execute([':name' => $newName, ':id' => $id, ':user_id' => $userId]);
     }
 
