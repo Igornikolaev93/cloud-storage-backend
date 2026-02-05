@@ -9,9 +9,17 @@ try {
 
     echo "Starting database setup...\n";
 
+    // Drop existing tables
+    $pdo->exec('DROP TABLE IF EXISTS file_shares;');
+    $pdo->exec('DROP TABLE IF EXISTS files;');
+    $pdo->exec('DROP TABLE IF EXISTS directories;');
+    $pdo->exec('DROP TABLE IF EXISTS users;');
+
+    echo "Existing tables dropped.\n";
+
     // SQL statements to create tables
     $statements = [
-        'CREATE TABLE IF NOT EXISTS users (
+        'CREATE TABLE users (
             id SERIAL PRIMARY KEY,
             email VARCHAR(255) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
@@ -21,7 +29,7 @@ try {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );',
 
-        'CREATE TABLE IF NOT EXISTS directories (
+        'CREATE TABLE directories (
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             name VARCHAR(255) NOT NULL,
@@ -32,7 +40,7 @@ try {
             FOREIGN KEY (parent_id) REFERENCES directories(id) ON DELETE CASCADE
         );',
 
-        'CREATE TABLE IF NOT EXISTS files (
+        'CREATE TABLE files (
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             directory_id INTEGER,
@@ -46,7 +54,7 @@ try {
             FOREIGN KEY (directory_id) REFERENCES directories(id) ON DELETE SET NULL
         );',
 
-        'CREATE TABLE IF NOT EXISTS file_shares (
+        'CREATE TABLE file_shares (
             id SERIAL PRIMARY KEY,
             file_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
