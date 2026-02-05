@@ -14,7 +14,9 @@ ini_set('default_charset', 'UTF-8');
 // The Database model expects a constant named DB_CONFIG to be defined.
 define('DB_CONFIG', [
     'driver'    => 'mysql',
-    'host'      => 'database',
+    // --- CORRECTED FOR XAMPP ---
+    // The host must be 'localhost' or '127.0.0.1' for a standard XAMPP setup.
+    'host'      => 'localhost',
     'dbname'    => 'dribbbox',
     'username'  => 'dribbbox',
     'password'  => 'dribbbox',
