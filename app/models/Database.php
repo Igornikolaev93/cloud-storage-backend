@@ -7,237 +7,71 @@ use PDO;
 use PDOException;
 use Exception;
 
-// FINAL VERSION - This file is corrected for type errors.
 class Database
 {
     private static ?PDO $connection = null;
 
-    /**
-     * Get the database connection.
-     * Uses the DB_CONFIG constant defined in config.php.
-     */
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
+            // Check if the configuration constant is defined
             if (!defined('DB_CONFIG')) {
-                throw new Exception("Database configuration (DB_CONFIG) is not defined.");
+                throw new Exception('Database configuration (DB_CONFIG) is not defined.');
             }
-            
+
             $config = DB_CONFIG;
-            
+            $dsn = sprintf(
+                '%s:host=%s;port=%s;dbname=%s;charset=%s',
+                $config['driver'],
+                $config['host'],
+                $config['port'],
+                $config['dbname'],
+                $config['charset']
+            );
+
             try {
-                if ($config['driver'] === 'pgsql') {
-                    $dsn = sprintf(
-                        'pgsql:host=%s;port=%s;dbname=%s',
-                        $config['host'],
-                        $config['port'],
-                        $config['dbname']
+                self::$connection = new PDO($dsn, $config['username'], $config['password'], $config['options']);
+            } catch (PDOException $e) {
+                // --- CUSTOM ERROR FOR USER DIAGNOSIS ---
+                // Check for the specific 'Connection Refused' error code.
+                if ($e->getCode() === 2002 || str_contains($e->getMessage(), 'Connection refused')) {
+                    $errorMessage = sprintf(
+                        "<h1>Database Connection Refused</h1>"
+                        . "<p>The application could not connect to the MySQL database. This is a common issue with local development environments like XAMPP.</p>"
+                        . "<p><b>Please check the following in your XAMPP Control Panel:</b></p>"
+                        . "<ol>"
+                        . "<li><b>Is the MySQL service running?</b> Look for the 'MySQL' module and ensure it has a green background. If not, click the 'Start' button next to it.</li>"
+                        . "<li><b>Which port is MySQL using?</b> Next to the MySQL module, you will see the port number it is using (e.g., '3306').</li>"
+                        . "</ol>"
+                        . "<p>The current configuration is trying to connect to <b>%s</b> on port <b>%s</b>.</p>"
+                        . "<p>If the port in your XAMPP Control Panel is different, you must update the 'port' value in the <code>app/config/config.php</code> file to match.</p>",
+                        $config['host'], $config['port']
                     );
-                } else { // default to mysql
-                    $dsn = sprintf(
-                        'mysql:host=%s;dbname=%s;port=%s;charset=%s',
-                        $config['host'],
-                        $config['dbname'],
-                        $config['port'],
-                        $config['charset']
-                    );
+                    throw new Exception($errorMessage, (int)$e->getCode());
                 }
                 
-                self::$connection = new PDO(
-                    $dsn,
-                    $config['username'],
-                    $config['password'],
-                    $config['options']
-                );
-                
-            } catch (PDOException $e) {
-                error_log("Database connection failed: " . $e->getMessage());
-                throw new Exception("Database connection error: " . $e->getMessage());
+                // Handle other database errors, like 'Unknown database'
+                if ($e->getCode() === 1049) {
+                     $errorMessage = sprintf(
+                        "<h1>Database Not Found</h1>"
+                        . "<p>The application connected to MySQL, but could not find the database named '<b>%s</b>'.</p>"
+                        . "<p><b>Please create the database in phpMyAdmin:</b></p>"
+                        . "<ol>"
+                        . "<li>Go to <a href='http://localhost/phpmyadmin'>http://localhost/phpmyadmin</a>.</li>"
+                        . "<li>Click the 'Databases' tab.</li>"
+                        . "<li>Under 'Create database', enter the name '<b>%s</b>' and click 'Create'.</li>"
+                        . "</ol>"
+                        . "<p>Once created, refresh this page. The application will set up the tables automatically.</p>",
+                        $config['dbname'], $config['dbname']
+                    );
+                    throw new Exception($errorMessage, (int)$e->getCode());
+                }
+
+                // For all other errors, throw a generic message.
+                throw new Exception('Database connection error: ' . $e->getMessage(), (int)$e->getCode());
             }
         }
-        
+
         return self::$connection;
-    }
-    
-    /**
-     * Get the correct quote character for the database driver.
-     */
-    private static function getQuoteChar(): string
-    {
-        $driver = self::getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
-        return $driver === 'pgsql' ? '"' : '`';
-    }
-
-    /**
-     * Start a new database transaction.
-     */
-    public static function beginTransaction(): bool
-    {
-        return self::getConnection()->beginTransaction();
-    }
-    
-    /**
-     * Commit the current database transaction.
-     */
-    public static function commit(): bool
-    {
-        return self::getConnection()->commit();
-    }
-    
-    /**
-     * Roll back the current database transaction.
-     */
-    public static function rollback(): bool
-    {
-        return self::getConnection()->rollBack();
-    }
-    
-    /**
-     * Execute a SQL query with parameters.
-     */
-    public static function query(string $sql, array $params = []): \PDOStatement
-    {
-        $stmt = self::getConnection()->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
-    }
-    
-    /**
-     * Fetch a single record from the database.
-     */
-    public static function fetchOne(string $sql, array $params = []): ?array
-    {
-        $stmt = self::query($sql, $params);
-        $result = $stmt->fetch();
-        return $result ?: null;
-    }
-    
-    /**
-     * Fetch all records from the database.
-     */
-    public static function fetchAll(string $sql, array $params = []): array
-    {
-        $stmt = self::query($sql, $params);
-        return $stmt->fetchAll();
-    }
-    
-    /**
-     * Fetch a single column from the next row of a result set.
-     */
-    public static function fetchColumn(string $sql, array $params = []): mixed
-    {
-        $stmt = self::query($sql, $params);
-        return $stmt->fetchColumn();
-    }
-    
-    /**
-     * Insert a new record into a table and return the last insert ID.
-     */
-    public static function insert(string $table, array $data): ?int
-    {
-        $q = self::getQuoteChar();
-        $columns = array_keys($data);
-        $quotedColumns = array_map(fn($col) => $q . $col . $q, $columns);
-        $placeholders = array_map(fn($col) => ':' . $col, $columns);
-        
-        $driver = self::getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
-        $returning = ($driver === 'pgsql') ? ' RETURNING id' : '';
-
-        $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES (%s)%s',
-            $table,
-            implode(', ', $quotedColumns),
-            implode(', ', $placeholders),
-            $returning
-        );
-        
-        $stmt = self::query($sql, $data);
-
-        if ($returning) {
-            $id = $stmt->fetchColumn();
-            return $id !== false ? (int)$id : null;
-        } else {
-            $lastId = self::getConnection()->lastInsertId();
-            return $lastId !== false ? (int)$lastId : null;
-        }
-    }
-    
-    /**
-     * Update records in a table.
-     */
-    public static function update(string $table, array $data, array $where): int
-    {
-        $q = self::getQuoteChar();
-        $setParts = [];
-        $params = [];
-        
-        foreach ($data as $column => $value) {
-            $setParts[] = "$q$column$q = :s_$column";
-            $params["s_$column"] = $value;
-        }
-        
-        $whereParts = [];
-        foreach ($where as $column => $value) {
-            $whereParts[] = "$q$column$q = :w_$column";
-            $params["w_$column"] = $value;
-        }
-        
-        $sql = sprintf(
-            'UPDATE %s SET %s WHERE %s',
-            $table,
-            implode(', ', $setParts),
-            implode(' AND ', $whereParts)
-        );
-        
-        $stmt = self::query($sql, $params);
-        return $stmt->rowCount();
-    }
-    
-    /**
-     * Delete records from a table.
-     */
-    public static function delete(string $table, array $where): int
-    {
-        $q = self::getQuoteChar();
-        $whereParts = [];
-        $params = [];
-        
-        foreach ($where as $column => $value) {
-            $paramName = 'w_' . $column;
-            $whereParts[] = "$q$column$q = :$paramName";
-            $params[$paramName] = $value;
-        }
-        
-        $sql = sprintf(
-            'DELETE FROM %s WHERE %s',
-            $table,
-            implode(' AND ', $whereParts)
-        );
-        
-        $stmt = self::query($sql, $params);
-        return $stmt->rowCount();
-    }
-    
-    /**
-     * Check if a record exists in a table.
-     */
-    public static function exists(string $table, array $conditions): bool
-    {
-        $q = self::getQuoteChar();
-        $whereParts = [];
-        $params = [];
-        
-        foreach ($conditions as $column => $value) {
-            $whereParts[] = "$q$column$q = :$column";
-            $params[$column] = $value;
-        }
-        
-        $sql = sprintf(
-            'SELECT COUNT(*) FROM %s WHERE %s',
-            $table,
-            implode(' AND ', $whereParts)
-        );
-        
-        return self::fetchColumn($sql, $params) > 0;
     }
 }

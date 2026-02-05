@@ -11,23 +11,20 @@
 ini_set('default_charset', 'UTF-8');
 
 // --- DATABASE CONFIGURATION ARRAY ---
-// The Database model expects a constant named DB_CONFIG to be defined.
 define('DB_CONFIG', [
     'driver'    => 'mysql',
-    // --- CORRECTED FOR XAMPP ---
-    // The host must be 'localhost' or '127.0.0.1' for a standard XAMPP setup.
     'host'      => 'localhost',
     'dbname'    => 'dribbbox',
-    'username'  => 'dribbbox',
-    'password'  => 'dribbbox',
+    // --- CORRECTED FOR XAMPP DEFAULTS ---
+    // Use the default root user for XAMPP, which has no password.
+    // This will resolve the connection refused error if the 'dribbbox' user does not exist.
+    'username'  => 'root',
+    'password'  => '',
     'port'      => '3306',
     'charset'   => 'utf8mb4',
     'options'   => [
-        // Set the error mode to throw exceptions
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        // Set the default fetch mode to associative array
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        // Disable emulation of prepared statements
         PDO::ATTR_EMULATE_PREPARES   => false,
     ],
 ]);
