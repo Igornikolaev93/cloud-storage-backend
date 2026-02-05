@@ -10,6 +10,30 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 // Загрузка конфигураций
 require_once __DIR__ . '/app/config/config.php';
+require_once __DIR__ . '/app/models/Database.php';
+
+// --- Automatic Database Setup ---
+try {
+    $pdo = App\Models\Database::getConnection();
+    // Check if a key table (e.g., files) exists.
+    $pdo->query("SELECT id FROM files LIMIT 1");
+} catch (PDOException $e) {
+    // If the query fails, it's very likely the tables are not set up.
+    // Run the setup script silently and then reload the page.
+    try {
+        // Capture output to prevent it from messing up the page
+        ob_start();
+        require __DIR__ . '/database_setup.php';
+        ob_end_clean();
+
+        // Reload the page to see the changes
+        header("Location: " . $_SERVER['REQUEST_URI']);
+        exit;
+    } catch (Exception $setupException) {
+        // If the setup itself fails, we have a bigger problem.
+        die("FATAL ERROR: Automatic database setup failed. Please check your database configuration and permissions. Details: " . $setupException->getMessage());
+    }
+}
 
 // Определение константы для папки загрузок
 if (!defined('UPLOAD_DIR')) {
@@ -20,7 +44,6 @@ if (!is_dir(UPLOAD_DIR)) {
 }
 
 // --- ЗАГРУЗКА ПРАВИЛЬНЫХ МАРШРУТОВ ---
-// Убедимся, что мы подключаем основной файл, а не дубликат из app/config
 require_once __DIR__ . '/app/routes.php';
 
 // Получаем URI и метод запроса
@@ -28,5 +51,4 @@ $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
 // Запускаем маршрутизатор
-// Используем полное имя класса, чтобы быть в полной безопасности
 App\Utils\Router::dispatch($requestUri, $requestMethod);
