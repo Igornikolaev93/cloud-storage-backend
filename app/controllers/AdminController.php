@@ -70,7 +70,7 @@ class AdminController extends BaseController
             $userId = (int)$params['id'];
              // Предотвращаем удаление самого себя
             if ($userId === Auth::getUserId()) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => \'Administrators cannot delete their own account.\'], 400);
+                $this->sendJsonResponse(['status' => 'error', 'message' => 'Administrators cannot delete their own account.'], 400);
                 return;
             }
             
