@@ -119,12 +119,8 @@
 
             <form action="/register" method="post">
                  <div class="form-group">
-                    <label for="first_name">Имя</label>
-                    <input type="text" id="first_name" name="first_name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="last_name">Фамилия</label>
-                    <input type="text" id="last_name" name="last_name" class="form-control" required>
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" name="username" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="email">Email</label>

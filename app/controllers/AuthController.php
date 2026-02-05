@@ -26,7 +26,7 @@ class AuthController extends BaseController
 
         $user = User::findByEmail($email);
 
-        if ($user && password_verify($password, $user['password'])) {
+        if ($user && password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id'] = $user['id'];
             header('Location: /');
             exit;
@@ -42,12 +42,11 @@ class AuthController extends BaseController
 
     public function handleRegister(): void
     {
-        $firstName = $_POST['first_name'] ?? '';
-        $lastName = $_POST['last_name'] ?? '';
+        $username = $_POST['username'] ?? '';
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
-        if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
+        if (empty($username) || empty($email) || empty($password)) {
             $this->renderView('register', ['error' => 'All fields are required.']);
             return;
         }
@@ -58,11 +57,9 @@ class AuthController extends BaseController
         }
 
         $userId = User::create([
-            'first_name' => $firstName,
-            'last_name' => $lastName,
+            'username' => $username,
             'email' => $email,
             'password' => $password,
-            'username' => $email // Or generate a unique username
         ]);
 
         if ($userId) {

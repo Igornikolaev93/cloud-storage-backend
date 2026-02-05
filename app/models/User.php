@@ -16,10 +16,8 @@ class User
 
         $userData = [
             'email' => strtolower(trim($data['email'])),
-            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-            'first_name' => trim($data['first_name']),
-            'last_name' => trim($data['last_name']),
-            'role' => $data['role'] ?? 'user'
+            'username' => $data['username'],
+            'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
         ];
 
         return Database::insert('users', $userData);
@@ -27,7 +25,7 @@ class User
 
     public static function findById(int $id): ?array
     {
-        $sql = "SELECT id, email, first_name, last_name, role, created_at, updated_at 
+        $sql = "SELECT id, email, username, created_at, updated_at 
                 FROM users WHERE id = :id";
 
         return Database::fetchOne($sql, ['id' => $id]);
@@ -39,12 +37,9 @@ class User
         return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
     }
     
-    /**
-     * Получение всех пользователей (для админки)
-     */
     public static function getAll(): array
     {
-        $sql = "SELECT id, email, first_name, last_name, role, created_at, updated_at FROM users ORDER BY created_at DESC";
+        $sql = "SELECT id, email, username, created_at, updated_at FROM users ORDER BY created_at DESC";
         return Database::fetchAll($sql);
     }
 
@@ -53,17 +48,14 @@ class User
         $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
         return Database::update('users',
-            ['password' => $passwordHash],
+            ['password_hash' => $passwordHash],
             ['id' => $userId]
         ) > 0;
     }
     
-    /**
-     * Обновление данных пользователя (для админки)
-     */
     public static function update(int $userId, array $data): bool
     {
-        $allowedFields = ['email', 'first_name', 'last_name', 'role'];
+        $allowedFields = ['email', 'username'];
         $updateData = [];
 
         foreach ($allowedFields as $field) {
@@ -72,16 +64,14 @@ class User
             }
         }
 
-        // Пароль обновляется отдельно, если он был передан
         if (!empty($data['password'])) {
-            $updateData['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            $updateData['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
         }
 
         if (empty($updateData)) {
-            return false; // Нет данных для обновления
+            return false;
         }
 
-        // Проверка уникальности email, если он меняется
         if (isset($updateData['email'])) {
             $existingUser = self::findByEmail($updateData['email']);
             if ($existingUser && $existingUser['id'] !== $userId) {
@@ -89,21 +79,11 @@ class User
             }
         }
         
-        // Проверка корректности роли
-        if (isset($updateData['role']) && !in_array($updateData['role'], ['user', 'admin'])) {
-            throw new Exception("Invalid role specified.");
-        }
-
         return Database::update('users', $updateData, ['id' => $userId]) > 0;
     }
 
-    /**
-     * Удаление пользователя (для админки)
-     */
     public static function delete(int $userId): bool
     {
-        // В будущем здесь можно добавить логику для удаления связанных данных (файлов и т.д.),
-        // но пока что ON DELETE CASCADE в БД справляется с этим.
         return Database::delete('users', ['id' => $userId]) > 0;
     }
 
