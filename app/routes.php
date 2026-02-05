@@ -1,7 +1,17 @@
 <?php
 declare(strict_types=1);
 
-// This file defines the application's routes but was missing the code to run them.
+// This file defines the application's routes and now correctly loads the controllers.
+
+// --- MANUAL CONTROLLER LOADING ---
+// Because there is no autoloader, we must require each controller file manually.
+require_once __DIR__ . '/controllers/BaseController.php';
+require_once __DIR__ . '/controllers/HomeController.php';
+require_once __DIR__ . '/controllers/AuthController.php';
+require_once __DIR__ . '/controllers/FileController.php';
+require_once __DIR__ . '/controllers/DirectoryController.php';
+require_once __DIR__ . '/controllers/AdminController.php'; // Included for completeness
+require_once __DIR__ . '/controllers/UserController.php';   // Included for completeness
 
 require_once __DIR__ . '/utils/Router.php';
 
@@ -45,8 +55,6 @@ Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
 Router::post('/directories/remove/{id}', [DirectoryController::class, 'remove']);
 
 // --- DISPATCH THE ROUTER ---
-// This was the missing piece. This code actually executes the routing logic.
-
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
