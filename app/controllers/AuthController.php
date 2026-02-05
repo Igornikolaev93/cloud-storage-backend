@@ -26,7 +26,7 @@ class AuthController extends BaseController
 
         $user = User::findByEmail($email);
 
-        if ($user && password_verify($password, $user['password_hash'])) {
+        if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             header('Location: /');
             exit;
