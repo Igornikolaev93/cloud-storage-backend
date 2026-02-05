@@ -41,11 +41,12 @@ Router::delete('/admin/users/delete/{id}', [AdminController::class, 'deleteUser'
 Router::put('/admin/users/update/{id}', [AdminController::class, 'updateUser']);
 
 // --- Управление файлами ---
+Router::get('/files', [FileController::class, 'index']);
 Router::get('/files/list', [FileController::class, 'list']);
 Router::get('/files/get/{id}', [FileController::class, 'get']);
 Router::post('/files/add', [FileController::class, 'add']);
-Router::put('/files/rename', [FileController::class, 'rename']);
-Router::delete('/files/remove/{id}', [FileController::class, 'remove']);
+Router::post('/files/rename', [FileController::class, 'rename']);
+Router::post('/files/remove', [FileController::class, 'remove']);
 
 // --- Управление доступом к файлам ---
 Router::get('/files/share/{id}', [FileController::class, 'getSharedUsers']);
@@ -54,6 +55,6 @@ Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWi
 
 // --- Управление папками ---
 Router::post('/directories/add', [DirectoryController::class, 'add']);
-Router::put('/directories/rename', [DirectoryController::class, 'rename']);
+Router::post('/directories/rename', [DirectoryController::class, 'rename']);
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
-Router::delete('/directories/delete/{id}', [DirectoryController::class, 'delete']);
+Router::post('/directories/remove', [DirectoryController::class, 'remove']);

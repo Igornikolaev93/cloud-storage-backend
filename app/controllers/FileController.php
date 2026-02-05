@@ -9,11 +9,29 @@ use Exception;
 
 class FileController extends BaseController
 {
-    // ... (существующие методы list, get, add, rename, remove) ...
+    public function __construct()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    public function index(): void
+    {
+        if (Auth::check()) {
+            $this->renderView('files');
+        } else {
+            header('Location: /login');
+            exit;
+        }
+    }
+
     public function list(): void
     {
         try {
-            $userId = Auth::getUserId(); // Предполагаем, что Auth::getUserId() возвращает ID текущего пользователя
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
                 $this->sendJsonResponse([
                     'status' => 'error',
@@ -33,7 +51,9 @@ class FileController extends BaseController
     public function get(array $params): void
     {
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;
@@ -56,28 +76,27 @@ class FileController extends BaseController
 
     public function add(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
             
             $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
             if ($directoryId) {
-                // Убедимся, что директория принадлежит пользователю
-                if (!File::findDirectoryById($directoryId, $userId)) {
-                     $this->sendJsonResponse(['status' => 'error', 'message' => 'Directory not found'], 404);
-                     return;
-                }
-            } else {
-                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Directory ID is required'], 400);
-                 return;
+                $redirectUrl .= '?dir=' . $directoryId;
+            }
+
+            if ($directoryId && !File::findDirectoryById($directoryId, $userId)) {
+                throw new Exception('Directory not found');
             }
 
             if (empty($_FILES['file'])) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'No file uploaded'], 400);
-                return;
+                throw new Exception('No file uploaded');
             }
 
             $file = $_FILES['file'];
@@ -86,79 +105,97 @@ class FileController extends BaseController
             $size = $file['size'];
             $tmpName = $file['tmp_name'];
             
-            // Генерируем уникальное имя файла
             $storedName = uniqid('file_', true) . '_' . $originalName;
+
+            if (!defined('UPLOAD_DIR')) {
+                define('UPLOAD_DIR', __DIR__ . '/../../uploads');
+            }
+            
             $uploadPath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $storedName;
 
             if (move_uploaded_file($tmpName, $uploadPath)) {
-                $fileId = File::createFile($userId, $directoryId, $originalName, $storedName, $mimeType, $size);
-                if ($fileId) {
-                    $this->sendJsonResponse(['status' => 'success', 'message' => 'File uploaded successfully', 'file_id' => $fileId]);
-                } else {
-                    // Если не удалось создать запись в БД, удаляем загруженный файл
-                    unlink($uploadPath);
-                    $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to save file info to database'], 500);
-                }
+                File::createFile($userId, $directoryId, $originalName, $storedName, $mimeType, $size);
             } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to move uploaded file'], 500);
+                throw new Exception('Failed to move uploaded file');
             }
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            // Log the error message
+            error_log($e->getMessage());
+        } finally {
+            // Redirect back to the files page
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
 
     public function rename(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
 
-            // Получаем данные из тела PUT-запроса
-            parse_str(file_get_contents("php://input"), $data);
-            $fileId = isset($data['id']) ? (int)$data['id'] : null;
-            $newName = isset($data['name']) ? trim($data['name']) : null;
+            $fileId = isset($_POST['id']) ? (int)$_POST['id'] : null;
+            $newName = isset($_POST['name']) ? trim($_POST['name']) : null;
+            $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+
+            if ($directoryId) {
+                $redirectUrl .= '?dir=' . $directoryId;
+            }
 
             if (!$fileId || !$newName) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'File ID and new name are required'], 400);
-                return;
+                throw new Exception('File ID and new name are required');
             }
 
-            if (File::renameFile($fileId, $userId, $newName)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'File renamed successfully']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to rename file'], 500);
-            }
+            File::renameFile($fileId, $userId, $newName);
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            error_log($e->getMessage());
+        } finally {
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
 
-    public function remove(array $params): void
+    public function remove(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
 
-            $fileId = (int)$params['id'];
+            $fileId = isset($_POST['id']) ? (int)$_POST['id'] : null;
+            $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
-            if (File::deleteFile($fileId, $userId)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'File deleted successfully']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to delete file'], 500);
+            if ($directoryId) {
+                $redirectUrl .= '?dir=' . $directoryId;
             }
+            
+            if (!$fileId) {
+                throw new Exception('File ID is required');
+            }
+
+            File::deleteFile($fileId, $userId);
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            error_log($e->getMessage());
+        } finally {
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
+    
     // --- Новые методы для управления доступом ---
 
     /**
@@ -168,7 +205,9 @@ class FileController extends BaseController
     public function getSharedUsers(array $params): void
     {
         try {
-            $ownerId = Auth::getUserId();
+            $user = Auth::user();
+            $ownerId = $user ? $user['id'] : null;
+
             if (!$ownerId) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;
@@ -190,7 +229,9 @@ class FileController extends BaseController
     public function shareWithUser(array $params): void
     {
         try {
-            $ownerId = Auth::getUserId();
+            $user = Auth::user();
+            $ownerId = $user ? $user['id'] : null;
+
             if (!$ownerId) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;
@@ -217,7 +258,9 @@ class FileController extends BaseController
     public function unshareWithUser(array $params): void
     {
         try {
-            $ownerId = Auth::getUserId();
+            $user = Auth::user();
+            $ownerId = $user ? $user['id'] : null;
+
             if (!$ownerId) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;

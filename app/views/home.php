@@ -51,12 +51,14 @@ $user = Auth::user();
             margin-bottom: 30px;
         }
 
-        a {
+        .actions a {
             color: #007aff;
             text-decoration: none;
+            margin: 0 10px;
+            font-size: 1.2em;
         }
 
-        a:hover {
+        .actions a:hover {
             text-decoration: underline;
         }
     </style>
@@ -65,7 +67,10 @@ $user = Auth::user();
     <div class="container">
         <h1>Welcome, <?= htmlspecialchars($user['username']) ?>!</h1>
         <p>You have successfully logged in to your cloud storage account.</p>
-        <a href="/logout">Log Out</a>
+        <div class="actions">
+            <a href="/files">My Files</a>
+            <a href="/logout">Log Out</a>
+        </div>
     </div>
 </body>
 </html>

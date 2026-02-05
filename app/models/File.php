@@ -29,7 +29,7 @@ class File
         return Database::insert('directories', $data);
     }
 
-    public static function createFile(int $userId, int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): ?int
+    public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): ?int
     {
         $data = [
             'user_id' => $userId,
@@ -41,17 +41,29 @@ class File
         ];
         return Database::insert('files', $data);
     }
+
     /**
      * Получение списка файлов и папок в указанной директории
      * + список файлов, которыми поделились с пользователем (в корне)
      */
     public static function getDirectoryContents(int $userId, ?int $directoryId = null): array
     {
+        // Получаем информацию о текущей директории, включая ее родителя
+        $currentDirectory = null;
+        $parentId = null;
+        if ($directoryId) {
+            $currentDirectory = self::findDirectoryById($directoryId, $userId);
+            if ($currentDirectory) {
+                $parentId = $currentDirectory['parent_id'];
+            }
+        } 
+
         $dirSql = "SELECT id, name, parent_id, created_at, updated_at FROM directories WHERE user_id = :user_id AND parent_id " . ($directoryId ? "= :directory_id" : "IS NULL");
         $directories = Database::fetchAll($dirSql, ['user_id' => $userId] + ($directoryId ? ['directory_id' => $directoryId] : []));
 
-        $fileSql = "SELECT id, name, mime_type, size, created_at, updated_at FROM files WHERE user_id = :user_id AND directory_id = :directory_id";
-        $files = Database::fetchAll($fileSql, ['user_id' => $userId, 'directory_id' => $directoryId]);
+        $fileSql = "SELECT id, name, mime_type, size, created_at, updated_at FROM files WHERE user_id = :user_id AND " . ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
+        $files = Database::fetchAll($fileSql, ['user_id' => $userId] + ($directoryId ? ['directory_id' => $directoryId] : []));
+
 
         // Если мы в корневой папке, добавляем файлы, которыми поделились с пользователем
         if ($directoryId === null) {
@@ -61,7 +73,8 @@ class File
 
         return [
             'directories' => $directories,
-            'files' => $files
+            'files' => $files,
+            'parent_id' => $parentId, 
         ];
     }
 

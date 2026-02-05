@@ -9,75 +9,91 @@ use Exception;
 
 class DirectoryController extends BaseController
 {
+    public function __construct()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+    
     /**
      * POST /directories/add
      * Добавление папки (директории)
      */
     public function add(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
 
             $name = isset($_POST['name']) ? trim($_POST['name']) : null;
-            $parentId = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+            $parentId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+
+            if ($parentId) {
+                $redirectUrl .= '?dir=' . $parentId;
+            }
 
             if (!$name) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Directory name is required'], 400);
-                return;
+                throw new Exception('Directory name is required');
             }
             
-            // Если parent_id указан, проверяем, что он принадлежит текущему пользователю
             if ($parentId && !File::findDirectoryById($parentId, $userId)) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Parent directory not found'], 404);
-                return;
+                throw new Exception('Parent directory not found');
             }
 
-            $dirId = File::createDirectory($userId, $name, $parentId);
-            if ($dirId) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'Directory created successfully', 'directory_id' => $dirId]);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to create directory'], 500);
-            }
+            File::createDirectory($userId, $name, $parentId);
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            // Log the error message
+            error_log($e->getMessage());
+        } finally {
+            // Redirect back to the files page
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
 
     /**
-     * PUT /directories/rename
+     * POST /directories/rename
      * Переименование папки
      */
     public function rename(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
 
-            parse_str(file_get_contents("php://input"), $data);
-            $dirId = isset($data['id']) ? (int)$data['id'] : null;
-            $newName = isset($data['name']) ? trim($data['name']) : null;
+            $dirId = isset($_POST['id']) ? (int)$_POST['id'] : null;
+            $newName = isset($_POST['name']) ? trim($_POST['name']) : null;
+            $parentId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+
+            if ($parentId) {
+                $redirectUrl .= '?dir=' . $parentId;
+            }
 
             if (!$dirId || !$newName) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Directory ID and new name are required'], 400);
-                return;
+                throw new Exception('Directory ID and new name are required');
             }
 
-            if (File::renameDirectory($dirId, $userId, $newName)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'Directory renamed successfully']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to rename directory'], 500);
-            }
+            File::renameDirectory($dirId, $userId, $newName);
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            error_log($e->getMessage());
+        } finally {
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
 
@@ -88,7 +104,9 @@ class DirectoryController extends BaseController
     public function get(array $params): void
     {
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
                 return;
@@ -112,28 +130,39 @@ class DirectoryController extends BaseController
     }
 
     /**
-     * DELETE /directories/delete/{id}
+     * POST /directories/remove
      * Удаление папки
      */
-    public function delete(array $params): void
+    public function remove(): void
     {
+        $redirectUrl = '/files';
         try {
-            $userId = Auth::getUserId();
+            $user = Auth::user();
+            $userId = $user ? $user['id'] : null;
+
             if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
+                header('Location: /login');
+                exit;
             }
 
-            $dirId = (int)$params['id'];
+            $dirId = isset($_POST['id']) ? (int)$_POST['id'] : null;
+            $parentId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
-            if (File::deleteDirectory($dirId, $userId)) {
-                $this->sendJsonResponse(['status' => 'success', 'message' => 'Directory deleted successfully']);
-            } else {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Failed to delete directory'], 500);
+            if ($parentId) {
+                $redirectUrl .= '?dir=' . $parentId;
             }
+
+            if (!$dirId) {
+                throw new Exception('Directory ID is required');
+            }
+
+            File::deleteDirectory($dirId, $userId);
 
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+            error_log($e->getMessage());
+        } finally {
+            header('Location: ' . $redirectUrl);
+            exit;
         }
     }
 }
