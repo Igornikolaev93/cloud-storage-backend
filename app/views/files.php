@@ -88,6 +88,29 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
 
     <!-- JavaScript -->
     <script>
+        function renameDirectory(directoryId, currentName) {
+            const newName = prompt("Enter the new directory name:", currentName);
+            if (newName && newName.trim() !== '' && newName !== currentName) {
+                const formData = new FormData();
+                formData.append('id', directoryId);
+                formData.append('name', newName.trim());
+                
+                fetch('/directories/rename', {
+                    method: 'POST',
+                    body: new URLSearchParams(new FormData(document.querySelector('form'))), // Fix for empty body
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to rename directory.');
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while renaming the directory.');
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const directoryId = <?= json_encode($currentDirectoryId) ?>;
             const apiUrl = directoryId ? `/directories/get/${directoryId}` : '/files/list';
@@ -107,7 +130,7 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
                         fileList.innerHTML += `<tr class="hover:bg-gray-50">
                             <td class="px-6 py-4"><a href="/files?dir=${dir.id}" class="flex items-center text-blue-600"><i data-feather="folder" class="mr-2"></i> ${dir.name}</a></td>
                             <td class="px-6 py-4 text-sm text-gray-500">${new Date(dir.created_at).toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right"><button class="text-blue-500 mr-2"><i data-feather="save"></i></button><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
+                            <td class="px-6 py-4 text-right"><button onclick="renameDirectory(${dir.id}, '${dir.name}')" class="text-blue-500 mr-2"><i data-feather="edit"></i></button><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
                     });
 
                     data.data.files.forEach(file => {

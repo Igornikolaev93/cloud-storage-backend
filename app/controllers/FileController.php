@@ -98,7 +98,6 @@ class FileController extends BaseController
             }
 
             if (!is_dir(UPLOAD_DIR) || !is_writable(UPLOAD_DIR)) {
-                // --- FIX: The string is now correctly quoted to prevent the parse error. ---
                 throw new Exception("The server's upload directory is not configured correctly. Please contact support.");
             }
             
@@ -158,7 +157,7 @@ class FileController extends BaseController
 
             header('Content-Description: File Transfer');
             header('Content-Type: ' . $file['mime_type']);
-            header('Content-Disposition: attachment; filename="' . basename($file['file_name']) . '"');
+            header('Content-Disposition: attachment; filename="' . basename($file['name']) . '"');
             header('Expires: 0');
             header('Cache-Control: must-revalidate');
             header('Pragma: public');
