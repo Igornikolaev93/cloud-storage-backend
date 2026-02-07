@@ -75,7 +75,8 @@ class Database
             $pdo = self::getConnection();
             $stmt = $pdo->prepare($sql);
             $stmt->execute($data);
-            return (int)$pdo->lastInsertId();
+            $sequenceName = $table . '_id_seq';
+            return (int)$pdo->lastInsertId($sequenceName);
         } catch (PDOException $e) {
             error_log("Database Insert Error: " . $e->getMessage());
             return null;
