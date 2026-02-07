@@ -26,8 +26,7 @@ class File
     
     public static function getDirectories(int $userId, ?int $directoryId): array
     {
-        // --- FIX: Aliased `creation_date` to `created_at` to match the frontend's expectation. ---
-        $sql = "SELECT id, name, creation_date as created_at, parent_id FROM directories WHERE user_id = :user_id AND " . 
+        $sql = "SELECT id, name, created_at as created_at, parent_id FROM directories WHERE user_id = :user_id AND " . 
                ($directoryId ? "parent_id = :parent_id" : "parent_id IS NULL");
         
         $params = ['user_id' => $userId];
@@ -40,13 +39,12 @@ class File
 
     public static function getFiles(int $userId, ?int $directoryId): array
     {
-        // --- FIX: Aliased column names (`file_name`, `upload_date`) to match the frontend's expectations. ---
         $sql = "SELECT id, file_name as name, upload_date as created_at, file_size as size FROM files WHERE user_id = :user_id AND " . 
-               ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
+               ($directoryId ? "parent_id = :parent_id" : "parent_id IS NULL");
 
         $params = ['user_id' => $userId];
         if ($directoryId) {
-            $params['directory_id'] = $directoryId;
+            $params['parent_id'] = $directoryId;
         }
 
         return Database::fetchAll($sql, $params);
@@ -81,7 +79,7 @@ class File
     {
         return Database::insert('files', [
             'user_id' => $userId,
-            'directory_id' => $directoryId,
+            'parent_id' => $directoryId,
             'file_name' => $originalName,
             'file_path' => $storedName,
             'mime_type' => $mimeType,
