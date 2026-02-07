@@ -77,16 +77,16 @@ class File
         ]) !== null;
     }
 
-    // --- FIX: The column names now correctly match the `files` table schema in the database. ---
     public static function createFile(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         return Database::insert('files', [
             'user_id' => $userId,
             'directory_id' => $directoryId,
-            'file_name' => $originalName,   // Was 'name'
-            'file_path' => $storedName,     // Was 'stored_name'
+            'file_name' => $originalName,
+            'file_path' => $storedName,
             'mime_type' => $mimeType,
-            'file_size' => $size             // Was 'size'
+            'file_size' => $size,
+            'upload_date' => date('Y-m-d H:i:s')
         ]) !== null;
     }
     
