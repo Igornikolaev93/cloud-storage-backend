@@ -124,6 +124,57 @@ class FileController extends BaseController
             exit;
         }
     }
+
+    public function download(array $params): void
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                header('Location: /login');
+                exit;
+            }
+            $userId = $user['id'];
+
+            if (!isset($params['id'])) {
+                throw new Exception('File ID is missing.');
+            }
+            $fileId = (int)$params['id'];
+
+            $file = File::findFileById($fileId, $userId);
+
+            if (!$file) {
+                throw new Exception('File not found or you do not have permission to access it.');
+            }
+
+            if (!defined('UPLOAD_DIR')) {
+                define('UPLOAD_DIR', __DIR__ . '/../../uploads');
+            }
+
+            $filePath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $file['file_path'];
+
+            if (!file_exists($filePath) || !is_readable($filePath)) {
+                throw new Exception('File is not accessible on the server.');
+            }
+
+            header('Content-Description: File Transfer');
+            header('Content-Type: ' . $file['mime_type']);
+            header('Content-Disposition: attachment; filename="' . basename($file['file_name']) . '"');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate');
+            header('Pragma: public');
+            header('Content-Length: ' . $file['file_size']);
+
+            ob_clean();
+            flush();
+
+            readfile($filePath);
+            exit;
+
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 404);
+        }
+    }
     
     public function remove(): void
     {

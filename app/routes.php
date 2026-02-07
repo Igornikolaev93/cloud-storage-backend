@@ -53,6 +53,7 @@ Router::get('/files/get/{id}', [FileController::class, 'get']);
 Router::post('/files/upload', [FileController::class, 'add']);
 Router::post('/files/rename', [FileController::class, 'rename']);
 Router::post('/files/remove', [FileController::class, 'remove']);
+Router::get('/files/download/{id}', [FileController::class, 'download']);
 
 // File Sharing
 Router::get('/files/share/{id}', [FileController::class, 'getSharedUsers']);
