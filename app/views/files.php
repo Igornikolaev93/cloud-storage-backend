@@ -56,7 +56,7 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
                 <label class="block text-sm font-medium text-gray-700 mb-2">Upload a New File</label>
                 <div class="flex space-x-2">
                     <input type="file" name="file" class="flex-grow p-2 border rounded-lg">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"><i data-feather="upload"></i></button>
+                    <button type="submit" name="upload" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"><i data-feather="upload"></i></button>
                 </div>
             </form>
 
