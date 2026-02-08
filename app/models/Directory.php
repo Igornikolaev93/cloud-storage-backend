@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Exception;
+
 class Directory
 {
     /**
@@ -85,10 +87,25 @@ class Directory
     }
 
     /**
-     * Delete a directory.
+     * Delete a directory and all of its files.
      */
-    public static function delete(int $directoryId, int $userId): bool
+    public static function delete(int $id, int $userId): bool
     {
-        return Database::delete('directories', ['id' => $directoryId, 'user_id' => $userId]) > 0;
+        Database::beginTransaction();
+
+        try {
+            // Delete files within the directory using the correct column name
+            Database::delete('files', ['directory_id' => $id, 'user_id' => $userId]);
+
+            // Delete the directory itself
+            $deleted = Database::delete('directories', ['id' => $id, 'user_id' => $userId]) > 0;
+
+            Database::commit();
+            return $deleted;
+
+        } catch (Exception $e) {
+            Database::rollback();
+            throw $e;
+        }
     }
 }
