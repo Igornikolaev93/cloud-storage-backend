@@ -8,14 +8,14 @@ class File
     /**
      * Get files from a specific directory.
      */
-    public static function getFiles(int $userId, ?int $directoryId): array
+    public static function getFiles(int $userId, ?int $parentId): array
     {
         $sql = "SELECT id, file_name as name, upload_date as created_at, file_size as size FROM files WHERE user_id = :user_id AND " . 
-               ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
+               ($parentId ? "parent_id = :parent_id" : "parent_id IS NULL");
 
         $params = ['user_id' => $userId];
-        if ($directoryId) {
-            $params['directory_id'] = $directoryId;
+        if ($parentId) {
+            $params['parent_id'] = $parentId;
         }
 
         return Database::fetchAll($sql, $params);
@@ -35,11 +35,11 @@ class File
     /**
      * Create a new file record.
      */
-    public static function create(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
+    public static function create(int $userId, ?int $parentId, string $originalName, string $storedName, string $mimeType, int $size): bool
     {
         return Database::insert('files', [
             'user_id' => $userId,
-            'directory_id' => $directoryId,
+            'parent_id' => $parentId,
             'file_name' => $originalName,
             'file_path' => $storedName,
             'mime_type' => $mimeType,
