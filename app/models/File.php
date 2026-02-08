@@ -11,7 +11,7 @@ class File
     public static function getFiles(int $userId, ?int $parentId): array
     {
         $sql = "SELECT id, file_name as name, upload_date as created_at, file_size as size FROM files WHERE user_id = :user_id AND " . 
-               ($parentId ? "parent_id = :parent_id" : "parent_id IS NULL");
+               ($parentId ? "directory_id = :parent_id" : "directory_id IS NULL");
 
         $params = ['user_id' => $userId];
         if ($parentId) {
@@ -39,7 +39,7 @@ class File
     {
         return Database::insert('files', [
             'user_id' => $userId,
-            'parent_id' => $parentId,
+            'directory_id' => $parentId,
             'file_name' => $originalName,
             'file_path' => $storedName,
             'mime_type' => $mimeType,
