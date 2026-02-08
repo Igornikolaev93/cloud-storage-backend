@@ -1,17 +1,25 @@
--- This script reverts the schema for the 'files' table back to using 'directory_id'.
--- Please execute it in your database management tool.
+-- Удалить и пересоздать таблицу files
+DROP TABLE IF EXISTS files CASCADE;
 
--- 1. Drop the 'parent_id' foreign key constraint if it exists.
-ALTER TABLE files DROP CONSTRAINT IF EXISTS fk_parent_directory;
+CREATE TABLE "files" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "directory_id" INTEGER NULL,
+    "file_name" VARCHAR(255) NOT NULL,
+    "file_path" VARCHAR(512) NOT NULL UNIQUE,
+    "file_size" BIGINT NOT NULL,
+    "mime_type" VARCHAR(100) NOT NULL,
+    "upload_date" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "access_token" VARCHAR(255) NULL UNIQUE,
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE,
+    CONSTRAINT "fk_directory"
+        FOREIGN KEY("directory_id")
+        REFERENCES "directories"("id")
+        ON DELETE SET NULL
+);
 
--- 2. Drop the 'parent_id' column if it exists.
-ALTER TABLE files DROP COLUMN IF EXISTS parent_id;
-
--- 3. Add the 'directory_id' column back.
-ALTER TABLE files ADD COLUMN directory_id INTEGER;
-
--- 4. Add a foreign key constraint to link 'files.directory_id' to 'directories.id'.
-ALTER TABLE files ADD CONSTRAINT fk_directory
-    FOREIGN KEY (directory_id)
-    REFERENCES directories (id)
-    ON DELETE SET NULL; -- This means if a directory is deleted, the file's directory_id will become NULL (it will be in the root).
+CREATE INDEX "idx_file_user_id" ON "files"("user_id");
+CREATE INDEX "idx_file_directory_id" ON "files"("directory_id");
