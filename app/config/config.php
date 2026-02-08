@@ -12,16 +12,13 @@ ini_set('default_charset', 'UTF-8');
 
 // --- DATABASE CONFIGURATION ARRAY ---
 define('DB_CONFIG', [
-    'driver'    => 'mysql',
+    'driver'    => 'pgsql',
     'host'      => 'localhost',
     'dbname'    => 'dribbbox',
-    // --- CORRECTED FOR XAMPP DEFAULTS ---
-    // Use the default root user for XAMPP, which has no password.
-    // This will resolve the connection refused error if the 'dribbbox' user does not exist.
-    'username'  => 'root',
-    'password'  => '',
-    'port'      => '3306',
-    'charset'   => 'utf8mb4',
+    'username'  => 'postgres',
+    'password'  => 'password', // Please replace with your actual password
+    'port'      => '5432',
+    'charset'   => 'utf8',
     'options'   => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
