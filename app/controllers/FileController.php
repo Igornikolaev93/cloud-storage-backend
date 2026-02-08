@@ -158,7 +158,7 @@ class FileController extends BaseController
 
             header('Content-Description: File Transfer');
             header('Content-Type: ' . $file['mime_type']);
-            header('Content-Disposition: attachment; filename="' . basename($file['name']) . '"');
+            header('Content-Disposition: attachment; filename="' . basename($file['file_name']) . '"');
             header('Expires: 0');
             header('Cache-Control: must-revalidate');
             header('Pragma: public');
@@ -192,7 +192,7 @@ class FileController extends BaseController
             $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
             if ($directoryId) {
-                $redirectUrl .= '?dir=' . $directoryI d;
+                $redirectUrl .= '?dir=' . $directoryId;
             }
             
             if (!$fileId) {
