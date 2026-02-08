@@ -12,7 +12,7 @@ if (!Auth::check()) {
 }
 
 $user = Auth::user();
-$currentDirectoryId = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
+$currentParentId = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
 $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
 
 ?>
@@ -52,7 +52,7 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
         <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- File Upload -->
             <form action="/files/upload" method="post" enctype="multipart/form-data" class="bg-white p-4 rounded-lg shadow-sm">
-                <input type="hidden" name="directory_id" value="<?= $currentDirectoryId ?>">
+                <input type="hidden" name="parent_id" value="<?= $currentParentId ?>">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Upload a New File</label>
                 <div class="flex space-x-2">
                     <input type="file" name="file" class="flex-grow p-2 border rounded-lg">
@@ -62,7 +62,7 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
 
             <!-- Directory Creation -->
             <form action="/directories/add" method="post" class="bg-white p-4 rounded-lg shadow-sm">
-                <input type="hidden" name="directory_id" value="<?= $currentDirectoryId ?>">
+                <input type="hidden" name="parent_id" value="<?= $currentParentId ?>">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Create a New Directory</label>
                 <div class="flex space-x-2">
                     <input type="text" name="name" placeholder="Directory name" class="flex-grow p-2 border rounded-lg">
@@ -97,7 +97,7 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
                 
                 fetch('/directories/rename', {
                     method: 'POST',
-                    body: new URLSearchParams(new FormData(document.querySelector('form'))), // Fix for empty body
+                    body: new URLSearchParams(formData)
                 }).then(response => {
                     if (response.ok) {
                         window.location.reload();
@@ -112,8 +112,8 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const directoryId = <?= json_encode($currentDirectoryId) ?>;
-            const apiUrl = directoryId ? `/directories/get/${directoryId}` : '/files/list';
+            const parentId = <?= json_encode($currentParentId) ?>;
+            const apiUrl = parentId ? `/directories/get/${parentId}` : '/files/list';
 
             fetch(apiUrl)
                 .then(response => response.json())
@@ -130,14 +130,14 @@ $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null
                         fileList.innerHTML += `<tr class="hover:bg-gray-50">
                             <td class="px-6 py-4"><a href="/files?dir=${dir.id}" class="flex items-center text-blue-600"><i data-feather="folder" class="mr-2"></i> ${dir.name}</a></td>
                             <td class="px-6 py-4 text-sm text-gray-500">${new Date(dir.created_at).toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right"><button onclick="renameDirectory(${dir.id}, '${dir.name}')" class="text-blue-500 mr-2"><i data-feather="edit"></i></button><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
+                            <td class="px-6 py-4 text-right"><button onclick="renameDirectory(${dir.id}, '${dir.name}')" class="text-blue-500 mr-2"><i data-feather="edit"></i></button><form action="/directories/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${dir.id}"><input type="hidden" name="parent_id" value="${parentId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
                     });
 
                     data.data.files.forEach(file => {
                         fileList.innerHTML += `<tr class="hover:bg-gray-50">
                             <td class="px-6 py-4"><span class="flex items-center"><i data-feather="file" class="mr-2"></i> ${file.name}</span></td>
                             <td class="px-6 py-4 text-sm text-gray-500">${new Date(file.created_at).toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right"><a href="/files/download/${file.id}" class="text-blue-500 mr-2"><i data-feather="download"></i></a><form action="/files/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${file.id}"><input type="hidden" name="directory_id" value="${directoryId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
+                            <td class="px-6 py-4 text-right"><a href="/files/download/${file.id}" class="text-blue-500 mr-2"><i data-feather="download"></i></a><form action="/files/remove" method="post" onsubmit="return confirm('Delete?');" style="display: inline-block;"><input type="hidden" name="id" value="${file.id}"><input type="hidden" name="parent_id" value="${parentId}"><button type="submit" class="text-red-500"><i data-feather="trash-2"></i></button></form></td></tr>`;
                     });
 
                     feather.replace();

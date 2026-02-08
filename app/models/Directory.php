@@ -3,92 +3,92 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Exception;
-
 class Directory
 {
     /**
-     * Create a new directory.
+     * Get all directories for a user within a specific parent directory.
      */
-    public static function create(int $userId, string $name, ?int $parentId = null): ?int
+    public static function getDirectories(int $userId, ?int $parentId): array
     {
-        return Database::insert('directories', [
-            'user_id' => $userId,
-            'name' => $name,
-            'parent_id' => $parentId
-        ]);
-    }
+        $sql = "SELECT id, name, created_at FROM directories WHERE user_id = :user_id AND " .
+               ($parentId ? "parent_id = :parent_id" : "parent_id IS NULL");
 
-    /**
-     * Rename a directory.
-     */
-    public static function rename(int $id, int $userId, string $newName): bool
-    {
-        return Database::update('directories', ['name' => $newName], ['id' => $id, 'user_id' => $userId]) > 0;
-    }
-
-    /**
-     * Find a directory by ID and user ID.
-     */
-    public static function findById(int $id, int $userId): ?array
-    {
-        return Database::fetchOne(
-            'SELECT * FROM directories WHERE id = :id AND user_id = :user_id',
-            ['id' => $id, 'user_id' => $userId]
-        );
-    }
-    
-    /**
-     * Get the contents of a directory (subdirectories and files).
-     */
-    public static function getContents(int $userId, ?int $directoryId): array
-    {
-        $parentInfo = null;
-        if ($directoryId) {
-            $parentDir = self::findById($directoryId, $userId);
-            if ($parentDir) {
-                $parentInfo = $parentDir['parent_id'];
-            }
-        }
-
-        return [
-            'directories' => self::getDirectories($userId, $directoryId),
-            'files' => File::getFiles($userId, $directoryId),
-            'parent_id' => $parentInfo,
-        ];
-    }
-
-    /**
-     * Get subdirectories within a directory.
-     */
-    public static function getDirectories(int $userId, ?int $directoryId): array
-    {
-        $sql = "SELECT id, name, created_at, parent_id FROM directories WHERE user_id = :user_id AND " .
-               ($directoryId ? "parent_id = :parent_id" : "parent_id IS NULL");
-        
         $params = ['user_id' => $userId];
-        if ($directoryId) {
-            $params['parent_id'] = $directoryId;
+        if ($parentId) {
+            $params['parent_id'] = $parentId;
         }
 
         return Database::fetchAll($sql, $params);
     }
 
     /**
-     * Delete a directory after ensuring it's empty.
+     * Find a directory by its ID for a specific user.
      */
-    public static function delete(int $id, int $userId): bool
+    public static function findById(int $directoryId, int $userId): ?array
     {
-        $subdirs = self::getDirectories($userId, $id);
-        if (count($subdirs) > 0) {
-            throw new Exception('Directory is not empty. Cannot delete a directory with subdirectories.');
+        return Database::fetchOne(
+            'SELECT * FROM directories WHERE id = :id AND user_id = :user_id',
+            ['id' => $directoryId, 'user_id' => $userId]
+        );
+    }
+
+    /**
+     * Find the parent directory of a given directory.
+     */
+    public static function findParentDirectory(int $directoryId, int $userId): ?array
+    {
+        return Database::fetchOne(
+            'SELECT d_parent.* FROM directories d_child JOIN directories d_parent ON d_child.parent_id = d_parent.id WHERE d_child.id = :id AND d_child.user_id = :user_id',
+            ['id' => $directoryId, 'user_id' => $userId]
+        );
+    }
+
+    /**
+     * Create a new directory.
+     */
+    public static function create(int $userId, string $name, ?int $parentId): bool
+    {
+        return Database::insert('directories', [
+            'user_id' => $userId,
+            'name' => $name,
+            'parent_id' => $parentId,
+            'created_at' => date('Y-m-d H:i:s')
+        ]) !== null;
+    }
+
+    /**
+     * Get the complete contents of a directory, including subdirectories and files.
+     */
+    public static function getContents(int $userId, ?int $parentId): array
+    {
+        $parentDir = null;
+        if ($parentId) {
+            $parentDir = self::findById($parentId, $userId);
         }
 
-        $files = File::getFiles($userId, $id);
-        if (count($files) > 0) {
-            throw new Exception('Directory is not empty. Cannot delete a directory with files.');
-        }
+        $directories = self::getDirectories($userId, $parentId);
+        $files = File::getFiles($userId, $parentId);
 
-        return Database::delete('directories', ['id' => $id, 'user_id' => $userId]) > 0;
+        return [
+            'parent_id' => $parentDir ? $parentDir['parent_id'] : null,
+            'directories' => $directories,
+            'files' => $files
+        ];
+    }
+    
+    /**
+     * Rename a directory.
+     */
+    public static function rename(int $directoryId, int $userId, string $newName): bool
+    {
+        return Database::update('directories', ['name' => $newName], ['id' => $directoryId, 'user_id' => $userId]) > 0;
+    }
+
+    /**
+     * Delete a directory.
+     */
+    public static function delete(int $directoryId, int $userId): bool
+    {
+        return Database::delete('directories', ['id' => $directoryId, 'user_id' => $userId]) > 0;
     }
 }

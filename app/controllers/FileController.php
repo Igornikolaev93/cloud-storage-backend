@@ -31,7 +31,10 @@ class FileController extends BaseController
                 return;
             }
             
-            $contents = Directory::getContents($userId, null);
+            // The parent_id is fetched from the GET request
+            $parentId = !empty($_GET['dir']) ? (int)$_GET['dir'] : null;
+
+            $contents = Directory::getContents($userId, $parentId);
             $this->sendJsonResponse(['status' => 'success', 'data' => $contents]);
 
         } catch (Exception $e) {
@@ -68,9 +71,10 @@ class FileController extends BaseController
     public function add(): void
     {
         $redirectUrl = '/files';
-        $directoryId = !empty($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
-        if ($directoryId) {
-            $redirectUrl .= '?dir=' . $directoryId;
+        // The parent_id is taken from the form submission
+        $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+        if ($parentId) {
+            $redirectUrl .= '?dir=' . $parentId;
         }
 
         try {
@@ -81,7 +85,7 @@ class FileController extends BaseController
             }
             $userId = $user['id'];
 
-            if ($directoryId && !Directory::findById($directoryId, $userId)) {
+            if ($parentId && !Directory::findById($parentId, $userId)) {
                 throw new Exception('The destination directory does not exist.');
             }
 
@@ -105,7 +109,7 @@ class FileController extends BaseController
             $uploadPath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $storedName;
 
             if (move_uploaded_file($tmpName, $uploadPath)) {
-                $success = File::create($userId, $directoryId, $originalName, $storedName, $file['type'], $file['size']);
+                $success = File::create($userId, $parentId, $originalName, $storedName, $file['type'], $file['size']);
                 if (!$success) {
                     unlink($uploadPath);
                     throw new Exception('Failed to save file metadata to the database.');
@@ -189,10 +193,10 @@ class FileController extends BaseController
             }
 
             $fileId = isset($_POST['id']) ? (int)$_POST['id'] : null;
-            $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
+            $parentId = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
 
-            if ($directoryId) {
-                $redirectUrl .= '?dir=' . $directoryId;
+            if ($parentId) {
+                $redirectUrl .= '?dir=' . $parentId;
             }
             
             if (!$fileId) {

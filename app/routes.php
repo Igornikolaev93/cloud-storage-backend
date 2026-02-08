@@ -20,7 +20,6 @@ require_once __DIR__ . '/models/Database.php';
 require_once __DIR__ . '/models/User.php';
 require_once __DIR__ . '/models/File.php';
 require_once __DIR__ . '/models/Directory.php';
-require_once __DIR__ . '/models/Folder.php';
 require_once __DIR__ . '/models/Share.php';
 
 // Utilities
