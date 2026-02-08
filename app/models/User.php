@@ -11,7 +11,7 @@ class User
     public static function create(array $data): ?int
     {
         if (self::findByEmail($data['email'])) {
-            throw new Exception("Email already exists");
+            throw new Exception('Email already exists');
         }
 
         $userData = [
@@ -25,7 +25,7 @@ class User
 
     public static function findById(int $id): ?array
     {
-        $sql = "SELECT id, email, username, created_at, updated_at 
+        $sql = "SELECT id, email, username, created_at, updated_at, role 
                 FROM users WHERE id = :id";
 
         return Database::fetchOne($sql, ['id' => $id]);
@@ -39,7 +39,7 @@ class User
     
     public static function getAll(): array
     {
-        $sql = "SELECT id, email, username, created_at, updated_at FROM users ORDER BY created_at DESC";
+        $sql = "SELECT id, email, username, created_at, updated_at, role FROM users ORDER BY created_at DESC";
         return Database::fetchAll($sql);
     }
 
@@ -55,7 +55,7 @@ class User
     
     public static function update(int $userId, array $data): bool
     {
-        $allowedFields = ['email', 'username'];
+        $allowedFields = ['email', 'username', 'role'];
         $updateData = [];
 
         foreach ($allowedFields as $field) {
@@ -75,7 +75,7 @@ class User
         if (isset($updateData['email'])) {
             $existingUser = self::findByEmail($updateData['email']);
             if ($existingUser && $existingUser['id'] !== $userId) {
-                throw new Exception("Email address is already in use by another account.");
+                throw new Exception('Email address is already in use by another account.');
             }
         }
         
@@ -87,28 +87,23 @@ class User
         return Database::delete('users', ['id' => $userId]) > 0;
     }
 
-    public static function createPasswordResetToken(string $email, string $token): void
+    public static function createPasswordResetToken(int $userId, string $token): void
     {
-        $user = self::findByEmail($email);
-        if (!$user) {
-            return;
-        }
-
         $data = [
-            'email' => $email,
+            'user_id' => $userId,
             'token' => $token,
-            'created_at' => date('Y-m-d H:i:s')
+            'expires_at' => date('Y-m-d H:i:s', time() + 3600) // 1 hour expiry
         ];
         Database::insert('password_resets', $data);
     }
 
-    public static function findUserByPasswordResetToken(string $token): ?array
+    public static function findByPasswordResetToken(string $token): ?array
     {
-        $sql = "SELECT * FROM password_resets WHERE token = :token AND created_at >= NOW() - INTERVAL '1 hour'";
+        $sql = "SELECT * FROM password_resets WHERE token = :token AND expires_at > NOW()";
         $reset = Database::fetchOne($sql, ['token' => $token]);
 
         if ($reset) {
-            return self::findByEmail($reset['email']);
+            return self::findById((int)$reset['user_id']);
         }
         return null;
     }

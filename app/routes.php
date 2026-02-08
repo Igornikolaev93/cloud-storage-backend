@@ -65,6 +65,17 @@ Router::post('/directories/rename', [DirectoryController::class, 'rename']);
 Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
 Router::post('/directories/remove', [DirectoryController::class, 'remove']);
 
+// User Management (Admin)
+Router::get('/admin/users', [AdminController::class, 'getUsers']);
+Router::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+
+// Password Reset
+Router::get('/password-reset', [UserController::class, 'showPasswordResetRequestForm']);
+Router::post('/password-reset', [UserController::class, 'handlePasswordResetRequest']);
+Router::get('/password-reset/{token}', [UserController::class, 'showPasswordResetForm']);
+Router::post('/password-reset/{token}', [UserController::class, 'handlePasswordReset']);
+
+
 // --- DISPATCH THE ROUTER ---
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];

@@ -21,6 +21,7 @@ CREATE TABLE "users" (
     "username" VARCHAR(50) NOT NULL UNIQUE,
     "email" VARCHAR(100) NOT NULL UNIQUE,
     "password_hash" VARCHAR(255) NOT NULL,
+    "role" VARCHAR(20) NOT NULL DEFAULT 'user', -- Added role column
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -88,10 +89,13 @@ COMMENT ON TABLE "files" IS 'Stores metadata about uploaded files.';
 --
 CREATE TABLE "password_resets" (
     "id" SERIAL PRIMARY KEY,
-    "email" VARCHAR(100) NOT NULL,
+    "user_id" INTEGER NOT NULL,
     "token" VARCHAR(255) NOT NULL UNIQUE,
     "expires_at" TIMESTAMPTZ NOT NULL,
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_password_token" ON "password_resets"("token");
