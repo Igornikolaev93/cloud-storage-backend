@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Models\Directory;
 use App\Models\File;
 use App\Utils\Auth;
 use Exception;
@@ -30,7 +31,7 @@ class FileController extends BaseController
                 return;
             }
             
-            $contents = File::getDirectoryContents($userId, null);
+            $contents = Directory::getContents($userId, null);
             $this->sendJsonResponse(['status' => 'success', 'data' => $contents]);
 
         } catch (Exception $e) {
@@ -50,7 +51,7 @@ class FileController extends BaseController
             }
 
             $fileId = (int)$params['id'];
-            $file = File::findFileById($fileId, $userId);
+            $file = File::findById($fileId, $userId);
 
             if (!$file) {
                 $this->sendJsonResponse(['status' => 'error', 'message' => 'File not found'], 404);
@@ -80,7 +81,7 @@ class FileController extends BaseController
             }
             $userId = $user['id'];
 
-            if ($directoryId && !File::findDirectoryById($directoryId, $userId)) {
+            if ($directoryId && !Directory::findById($directoryId, $userId)) {
                 throw new Exception('The destination directory does not exist.');
             }
 
@@ -104,7 +105,7 @@ class FileController extends BaseController
             $uploadPath = UPLOAD_DIR . DIRECTORY_SEPARATOR . $storedName;
 
             if (move_uploaded_file($tmpName, $uploadPath)) {
-                $success = File::createFile($userId, $directoryId, $originalName, $storedName, $file['type'], $file['size']);
+                $success = File::create($userId, $directoryId, $originalName, $storedName, $file['type'], $file['size']);
                 if (!$success) {
                     unlink($uploadPath);
                     throw new Exception('Failed to save file metadata to the database.');
@@ -139,7 +140,7 @@ class FileController extends BaseController
             }
             $fileId = (int)$params['id'];
 
-            $file = File::findFileById($fileId, $userId);
+            $file = File::findById($fileId, $userId);
 
             if (!$file) {
                 throw new Exception('File not found or you do not have permission to access it.');
@@ -191,14 +192,14 @@ class FileController extends BaseController
             $directoryId = isset($_POST['directory_id']) ? (int)$_POST['directory_id'] : null;
 
             if ($directoryId) {
-                $redirectUrl .= '?dir=' . $directoryId;
+                $redirectUrl .= '?dir=' . $directoryI d;
             }
             
             if (!$fileId) {
                 throw new Exception('File ID is required');
             }
 
-            File::deleteFile($fileId, $userId);
+            File::delete($fileId, $userId);
 
         } catch (Exception $e) {
             error_log($e->getMessage());
