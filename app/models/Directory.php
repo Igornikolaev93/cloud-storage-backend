@@ -94,8 +94,8 @@ class Directory
         Database::beginTransaction();
 
         try {
-            // Delete files within the directory using the correct column name
-            Database::delete('files', ['directory_id' => $id, 'user_id' => $userId]);
+            // Delete files within the directory
+            Database::delete('files', ['parent_id' => $id, 'user_id' => $userId]);
 
             // Delete the directory itself
             $deleted = Database::delete('directories', ['id' => $id, 'user_id' => $userId]) > 0;
