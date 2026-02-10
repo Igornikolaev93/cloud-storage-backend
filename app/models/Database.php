@@ -15,7 +15,7 @@ class Database
     {
         if (self::$connection === null) {
             $driver = 'pgsql';
-            $host = 'dpg-d624o9sh2g0os7387am6g-a.oregon-postgres.render.com';
+            $host = '35.227.164.209'; // <-- Updated IP Address
             $port = '5432';
             $dbname = 'cloude_db';
             $username = 'cloude_user';
@@ -69,7 +69,7 @@ class Database
     {
         $columns = implode(", ", array_keys($data));
         $placeholders = ":" . implode(", :", array_keys($data));
-        $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders}) RETURNING id";
+        $sql = "INSERT INTO \"{$table}\" ({$columns}) VALUES ({$placeholders}) RETURNING id";
 
         try {
             $pdo = self::getConnection();
