@@ -14,12 +14,12 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            $driver = 'mysql';
-            $host = 'localhost';
-            $port = '3306';
-            $dbname = 'cloud_storage';
-            $username = 'root';
-            $password = '';
+            $driver = 'pgsql';
+            $host = 'dpg-d624o9sh2g0os7387am6g-a.oregon-postgres.render.com';
+            $port = '5432';
+            $dbname = 'cloude_db';
+            $username = 'cloude_user';
+            $password = 'miiW801cahpwa8KTjGk7LASxtKYnGilT';
 
             $dsn = sprintf(
                 '%s:host=%s;port=%s;dbname=%s',
@@ -69,26 +69,14 @@ class Database
     {
         $columns = implode(", ", array_keys($data));
         $placeholders = ":" . implode(", :", array_keys($data));
-        $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
+        $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders}) RETURNING id";
 
         try {
             $pdo = self::getConnection();
-            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-
-            if ($driver === 'pgsql') {
-                $sql .= " RETURNING id";
-            }
-
             $stmt = $pdo->prepare($sql);
             $stmt->execute($data);
-
-            if ($driver === 'mysql') {
-                return (int)$pdo->lastInsertId();
-            } elseif ($driver === 'pgsql') {
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                return $result ? (int)$result['id'] : null;
-            }
-            return null;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? (int)$result['id'] : null;
         } catch (PDOException $e) {
             error_log("Database Insert Error: " . $e->getMessage());
             throw new Exception('Database insert failed: ' . $e->getMessage());
@@ -101,18 +89,18 @@ class Database
         $whereParams = [];
         $dataFields = [];
         foreach ($data as $key => $value) {
-            $dataFields[] = "{$key} = :{$key}";
+            $dataFields[] = "\"{$key}\" = :{$key}";
         }
         $dataString = implode(", ", $dataFields);
 
         $conditionFields = [];
         foreach ($conditions as $key => $value) {
-            $conditionFields[] = "{$key} = :cond_{$key}";
+            $conditionFields[] = "\"{$key}\" = :cond_{$key}";
             $whereParams["cond_{$key}"] = $value;
         }
         $conditionString = implode(" AND ", $conditionFields);
 
-        $sql = "UPDATE {$table} SET {$dataString} WHERE {$conditionString}";
+        $sql = "UPDATE \"{$table}\" SET {$dataString} WHERE {$conditionString}";
         $allParams = array_merge($setParams, $whereParams);
 
         try {
@@ -129,10 +117,11 @@ class Database
     {
         $conditionFields = [];
         foreach ($conditions as $key => $value) {
-            $conditionFields[] = "{$key} = :{$key}";
+            $conditionFields[] = "\"{$key}\" = :{$key}";
         }
         $conditionString = implode(" AND ", $conditionFields);
-        $sql = "DELETE FROM {$table} WHERE {$conditionString}";
+
+        $sql = "DELETE FROM \"{$table}\" WHERE {$conditionString}";
 
         try {
             $stmt = self::getConnection()->prepare($sql);

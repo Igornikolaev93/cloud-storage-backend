@@ -1,53 +1,61 @@
--- Adminer 4.8.1 MySQL 5.5.5-10.4.24-MariaDB dump
+START TRANSACTION;
 
-SET NAMES utf8;
-SET time_zone = '+00:00';
-SET foreign_key_checks = 0;
-SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+CREATE TABLE IF NOT EXISTS "users" (
+    "id" SERIAL PRIMARY KEY,
+    "username" VARCHAR(255) NOT NULL UNIQUE,
+    "email" VARCHAR(255) NOT NULL UNIQUE,
+    "password_hash" VARCHAR(255) NOT NULL,
+    "role" VARCHAR(50) NOT NULL DEFAULT 'user',
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-DROP TABLE IF EXISTS `files`;
-CREATE TABLE `files` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_size` int(11) NOT NULL,
-  `file_type` varchar(255) NOT NULL,
-  `is_public` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `files_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS "files" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "filename" VARCHAR(255) NOT NULL,
+    "file_path" VARCHAR(255) NOT NULL,
+    "file_size" INTEGER NOT NULL,
+    "file_type" VARCHAR(255) NOT NULL,
+    "is_public" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE
+);
 
+CREATE TABLE IF NOT EXISTS "password_resets" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "token" VARCHAR(255) NOT NULL UNIQUE,
+    "expires_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT "fk_user"
+        FOREIGN KEY("user_id") 
+        REFERENCES "users"("id")
+        ON DELETE CASCADE
+);
 
-DROP TABLE IF EXISTS `password_resets`;
-CREATE TABLE `password_resets` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `token` varchar(255) NOT NULL,
-  `expires_at` datetime NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `token` (`token`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS set_timestamp_users ON "users";
+CREATE TRIGGER set_timestamp_users
+BEFORE UPDATE ON "users"
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `username` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `role` varchar(50) NOT NULL DEFAULT 'user',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+DROP TRIGGER IF EXISTS set_timestamp_files ON "files";
+CREATE TRIGGER set_timestamp_files
+BEFORE UPDATE ON "files"
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
--- 2024-05-16 11:57:07
+COMMIT;
