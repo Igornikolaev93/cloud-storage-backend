@@ -20,6 +20,10 @@ class User
             'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
         ];
 
+        if (isset($data['role'])) {
+            $userData['role'] = $data['role'];
+        }
+
         return Database::insert('users', $userData);
     }
 
