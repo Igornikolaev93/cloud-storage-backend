@@ -1,22 +1,15 @@
-<?php include __DIR__ . '/../partials/header.php'; ?>
+<?php
+$this->layout('layouts/main', ['title' => 'Admin - Users']);
+?>
 
 <div class="container">
     <h2>User Management</h2>
-
-    <?php if (isset($_GET['message'])): ?>
-        <div class="alert alert-success"><?php echo htmlspecialchars($_GET['message']); ?></div>
-    <?php endif; ?>
-    <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-danger"><?php echo htmlspecialchars($_GET['error']); ?></div>
-    <?php endif; ?>
-
     <table class="table">
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Username</th>
                 <th>Email</th>
-                <th>First Name</th>
-                <th>Last Name</th>
                 <th>Role</th>
                 <th>Actions</th>
             </tr>
@@ -24,38 +17,18 @@
         <tbody>
             <?php foreach ($users as $user): ?>
                 <tr>
-                    <td><?php echo $user['id']; ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td><?php echo htmlspecialchars($user['first_name']); ?></td>
-                    <td><?php echo htmlspecialchars($user['last_name']); ?></td>
-                    <td><?php echo htmlspecialchars($user['role']); ?></td>
-                    <td class="actions-cell">
-                        <form action="/admin/users/<?php echo $user['id']; ?>/role" method="post">
-                            <select name="role" class="form-control-sm">
-                                <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
-                                <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                        </form>
-                        <form action="/admin/users/delete/<?php echo $user['id']; ?>" method="post">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    <td><?= htmlspecialchars((string)$user['id']) ?></td>
+                    <td><?= htmlspecialchars($user['username']) ?></td>
+                    <td><?= htmlspecialchars($user['email']) ?></td>
+                    <td><?= htmlspecialchars($user['role']) ?></td>
+                    <td>
+                        <a href="/admin/users/edit?id=<?= $user['id'] ?>" class="btn btn-sm btn-primary">Edit</a>
+                        <form action="/admin/users/delete?id=<?= $user['id'] ?>" method="POST" style="display: inline-block;">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
                     </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
-
-    <!-- Pagination -->
-    <nav>
-        <ul class="pagination">
-            <?php for ($i = 1; $i <= $pagination['total_pages']; $i++): ?>
-                <li class="page-item <?php echo $i === $pagination['page'] ? 'active' : ''; ?>">
-                    <a class="page-link" href="/admin/users?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                </li>
-            <?php endfor; ?>
-        </ul>
-    </nav>
 </div>
-
-<?php include __DIR__ . '/../partials/footer.php'; ?>

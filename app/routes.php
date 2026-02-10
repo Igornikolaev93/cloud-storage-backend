@@ -66,8 +66,10 @@ Router::get('/directories/get/{id}', [DirectoryController::class, 'get']);
 Router::post('/directories/remove', [DirectoryController::class, 'remove']);
 
 // User Management (Admin)
-Router::get('/admin/users', [AdminController::class, 'getUsers']);
-Router::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+Router::get('/admin/users', [AdminController::class, 'users']);
+Router::get('/admin/users/edit', [AdminController::class, 'editUser']);
+Router::post('/admin/users/update', [AdminController::class, 'updateUser']);
+Router::post('/admin/users/delete', [AdminController::class, 'deleteUser']);
 
 // Password Reset
 Router::get('/password-reset', [UserController::class, 'showPasswordResetRequestForm']);
