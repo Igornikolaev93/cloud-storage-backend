@@ -23,7 +23,7 @@ class FileController extends BaseController
     public function list(): void
     {
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
@@ -45,7 +45,7 @@ class FileController extends BaseController
     public function get(array $params): void
     {
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
@@ -78,7 +78,7 @@ class FileController extends BaseController
         }
 
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             if (!$user) {
                 header('Location: /login');
                 exit;
@@ -132,7 +132,7 @@ class FileController extends BaseController
     public function download(array $params): void
     {
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             if (!$user) {
                 header('Location: /login');
                 exit;
@@ -184,7 +184,7 @@ class FileController extends BaseController
     {
         $redirectUrl = '/files';
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {

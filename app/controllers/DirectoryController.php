@@ -12,7 +12,7 @@ class DirectoryController extends BaseController
     public function add(): void
     {
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             if (!$user) {
                 header('Location: /login');
                 exit;
@@ -53,7 +53,7 @@ class DirectoryController extends BaseController
     {
         $redirectUrl = '/files';
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
@@ -86,7 +86,7 @@ class DirectoryController extends BaseController
     public function get(array $params): void
     {
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
@@ -108,7 +108,7 @@ class DirectoryController extends BaseController
     {
         $redirectUrl = '/files';
         try {
-            $user = Auth::user();
+            $user = Auth::getUser();
             $userId = $user ? $user['id'] : null;
 
             if (!$userId) {
