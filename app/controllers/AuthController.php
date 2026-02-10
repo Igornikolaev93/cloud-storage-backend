@@ -26,7 +26,18 @@ class AuthController extends BaseController
                 throw new Exception('Passwords do not match.');
             }
             
-            $userId = User::create(['username' => $username, 'email' => $email, 'password' => $password]);
+            $userData = [
+                'username' => $username,
+                'email' => $email,
+                'password' => $password
+            ];
+
+            // Grant admin role if the email matches
+            if ($email === 'admin@example.com') {
+                $userData['role'] = 'admin';
+            }
+
+            $userId = User::create($userData);
 
             if (!$userId) {
                 throw new Exception('Registration failed. The email might already be in use.');
@@ -57,29 +68,15 @@ class AuthController extends BaseController
 
             $user = User::findByEmail($email);
 
-            if ($user) {
-                // User exists, verify password
-                if (password_verify($password, $user['password_hash'])) {
-                    Auth::login($user['id']);
-                    header('Location: /files');
-                    exit;
-                } else {
-                    throw new Exception('Invalid email or password.');
-                }
-            } else {
-                // User does not exist, create a new one
-                $username = explode('@', $email)[0];
-                $userId = User::create(['username' => $username, 'email' => $email, 'password' => $password]);
-
-                if (!$userId) {
-                    throw new Exception('Registration failed.');
-                }
-
-                $newUser = User::findById($userId);
-                Auth::login($newUser['id']);
-                header('Location: /files');
-                exit;
+            if (!$user || !password_verify($password, $user['password_hash'])) {
+                throw new Exception('Invalid email or password.');
             }
+
+            Auth::login($user['id']);
+
+            header('Location: /files');
+            exit;
+
         } catch (Exception $e) {
             $this->render('login', ['error' => $e->getMessage()]);
         }
