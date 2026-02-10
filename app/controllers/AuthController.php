@@ -22,6 +22,10 @@ class AuthController extends BaseController
             $password = $_POST['password'] ?? '';
             $passwordConfirm = $_POST['password_confirm'] ?? '';
 
+            if (empty($username) || empty($email) || empty($password)) {
+                throw new Exception('Please fill in all required fields.');
+            }
+
             if ($password !== $passwordConfirm) {
                 throw new Exception('Passwords do not match.');
             }
