@@ -19,7 +19,7 @@ class AdminController extends BaseController
 
     public function index(): void
     {
-        $users = User::findAll();
+        $users = User::getAll();
         $this->render('admin/index', ['users' => $users]);
     }
 
