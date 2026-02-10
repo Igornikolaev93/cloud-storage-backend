@@ -14,8 +14,7 @@ class AdminController extends BaseController
             $this->redirect('/');
         }
 
-        $user = new User();
-        $users = $user->findAll();
+        $users = User::getAll();
 
         $this->render('admin/users', ['users' => $users]);
     }
@@ -31,8 +30,7 @@ class AdminController extends BaseController
             $this->redirect('/admin/users');
         }
 
-        $user = new User();
-        $userData = $user->find((int)$id);
+        $userData = User::findById((int)$id);
 
         if (!$userData) {
             $this->redirect('/admin/users');
@@ -53,8 +51,7 @@ class AdminController extends BaseController
         $role = $_POST['role'] ?? '';
 
         if ($id) {
-            $user = new User();
-            $user->update((int)$id, [
+            User::update((int)$id, [
                 'username' => $username,
                 'email' => $email,
                 'role' => $role,
@@ -72,8 +69,7 @@ class AdminController extends BaseController
 
         $id = $_GET['id'] ?? null;
         if ($id) {
-            $user = new User();
-            $user->delete((int)$id);
+            User::delete((int)$id);
         }
 
         $this->redirect('/admin/users');
