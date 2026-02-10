@@ -8,70 +8,65 @@ use App\Utils\Auth;
 
 class AdminController extends BaseController
 {
-    public function users(): void
+    public function __construct()
     {
+        // Redirect non-admins to the login page
         if (!Auth::isAdmin()) {
-            $this->redirect('/');
+            header('Location: /login');
+            exit;
         }
+    }
 
-        $users = User::getAll();
-
-        $this->render('admin/users', ['users' => $users]);
+    public function index(): void
+    {
+        $users = User::findAll();
+        $this->render('admin/index', ['users' => $users]);
     }
 
     public function editUser(): void
     {
-        if (!Auth::isAdmin()) {
-            $this->redirect('/');
+        $userId = $_GET['id'] ?? null;
+        if (!$userId) {
+            header('Location: /admin/users');
+            exit;
         }
 
-        $id = $_GET['id'] ?? null;
-        if (!$id) {
-            $this->redirect('/admin/users');
+        $user = User::findById((int)$userId);
+        if (!$user) {
+            header('Location: /admin/users');
+            exit;
         }
 
-        $userData = User::findById((int)$id);
-
-        if (!$userData) {
-            $this->redirect('/admin/users');
-        }
-
-        $this->render('admin/edit_user', ['user' => $userData]);
+        $this->render('admin/edit', ['user' => $user]);
     }
 
     public function updateUser(): void
     {
-        if (!Auth::isAdmin()) {
-            $this->redirect('/');
-        }
-
-        $id = $_POST['id'] ?? null;
+        $userId = $_POST['id'] ?? null;
         $username = $_POST['username'] ?? '';
         $email = $_POST['email'] ?? '';
         $role = $_POST['role'] ?? '';
 
-        if ($id) {
-            User::update((int)$id, [
-                'username' => $username,
-                'email' => $email,
-                'role' => $role,
-            ]);
+        if (!$userId) {
+            header('Location: /admin/users');
+            exit;
         }
 
-        $this->redirect('/admin/users');
+        User::update((int)$userId, ['username' => $username, 'email' => $email, 'role' => $role]);
+
+        header('Location: /admin/users');
+        exit;
     }
 
     public function deleteUser(): void
     {
-        if (!Auth::isAdmin()) {
-            $this->redirect('/');
+        $userId = $_POST['id'] ?? null;
+
+        if ($userId) {
+            User::delete((int)$userId);
         }
 
-        $id = $_GET['id'] ?? null;
-        if ($id) {
-            User::delete((int)$id);
-        }
-
-        $this->redirect('/admin/users');
+        header('Location: /admin/users');
+        exit;
     }
 }
