@@ -29,15 +29,15 @@
                     <td><?php echo htmlspecialchars($user['first_name']); ?></td>
                     <td><?php echo htmlspecialchars($user['last_name']); ?></td>
                     <td><?php echo htmlspecialchars($user['role']); ?></td>
-                    <td>
-                        <form action="/admin/users/<?php echo $user['id']; ?>/role" method="post" style="display: inline;">
+                    <td class="actions-cell">
+                        <form action="/admin/users/<?php echo $user['id']; ?>/role" method="post">
                             <select name="role" class="form-control-sm">
                                 <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
                                 <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Update</button>
                         </form>
-                        <form action="/admin/users/delete/<?php echo $user['id']; ?>" method="post" style="display: inline;">
+                        <form action="/admin/users/delete/<?php echo $user['id']; ?>" method="post">
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     </td>
