@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Models\Directory;
 use App\Models\File;
+use App\Models\User;
 use App\Utils\Auth;
 use Exception;
 
@@ -12,27 +13,39 @@ class FileController extends BaseController
 {
     public function index(): void
     {
-        if (Auth::check()) {
-            $this->render('files');
-        } else {
+        if (!Auth::check()) {
             header('Location: /login');
             exit;
+        }
+
+        $user = Auth::getUser();
+        $userId = $user['id'];
+
+        try {
+            // Pass the root directory structure and user info to the view
+            $this->render('files', [
+                'user' => $user,
+            ]);
+        } catch (Exception $e) {
+            // Handle potential errors, like database connection issues
+            $this->render('files', [
+                'user' => $user,
+                'error' => 'Could not retrieve file data: ' . $e->getMessage(),
+            ]);
         }
     }
 
     public function list(): void
     {
+        if (!Auth::check()) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
+            return;
+        }
+
         try {
-            $user = Auth::getUser();
-            $userId = $user ? $user['id'] : null;
-
-            if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
-            }
+            $userId = Auth::getUser()['id'];
+            $parentId = isset($_GET['parent_id']) && $_GET['parent_id'] !== 'null' ? (int)$_GET['parent_id'] : null;
             
-            $parentId = !empty($_GET['dir']) ? (int)$_GET['dir'] : null;
-
             $contents = Directory::getContents($userId, $parentId);
             $this->sendJsonResponse(['status' => 'success', 'data' => $contents]);
         } catch (Exception $e) {
@@ -40,45 +53,100 @@ class FileController extends BaseController
         }
     }
 
-    public function upload(): void
+    public function get(int $id): void
     {
-        try {
-            $user = Auth::getUser();
-            $userId = $user ? $user['id'] : null;
+        // Implementation for getting a single file's details
+    }
 
-            if (!$userId) {
-                $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
-                return;
-            }
+    public function add(): void
+    {
+        if (!Auth::check()) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
+            return;
+        }
+
+        try {
+            $userId = Auth::getUser()['id'];
+            $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== 'null' ? (int)$_POST['parent_id'] : null;
 
             if (empty($_FILES['files'])) {
                 throw new Exception('No files were uploaded.');
             }
 
-            $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
-
-            $files = $_FILES['files'];
-            $count = count($files['name']);
-
-            for ($i = 0; $i < $count; $i++) {
-                $file = [
-                    'name' => $files['name'][$i],
-                    'type' => $files['type'][$i],
-                    'tmp_name' => $files['tmp_name'][$i],
-                    'error' => $files['error'][$i],
-                    'size' => $files['size'][$i]
-                ];
-
-                if ($file['error'] !== UPLOAD_ERR_OK) {
-                    continue; // Or handle the error
+            $uploadedFiles = [];
+            foreach ($_FILES['files']['tmp_name'] as $key => $tmpName) {
+                if ($_FILES['files']['error'][$key] !== UPLOAD_ERR_OK) {
+                    continue; // Or handle the specific error
                 }
-
-                File::create($userId, $parentId, $file['name'], $file['size'], $file['tmp_name']);
+                $fileName = $_FILES['files']['name'][$key];
+                $fileSize = $_FILES['files']['size'][$key];
+                
+                $fileId = File::create($userId, $parentId, $fileName, $fileSize, $tmpName);
+                if ($fileId) {
+                    $uploadedFiles[] = File::findById($fileId);
+                }
             }
 
-            $this->sendJsonResponse(['status' => 'success', 'message' => 'Files uploaded successfully.']);
+            $this->sendJsonResponse(['status' => 'success', 'message' => 'Files uploaded successfully.', 'data' => $uploadedFiles]);
         } catch (Exception $e) {
             $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
+    
+    public function rename(): void
+    {
+        if (!Auth::check()) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
+            return;
+        }
+
+        try {
+            $userId = Auth::getUser()['id'];
+            $fileId = (int)$_POST['id'];
+            $newName = trim($_POST['name']);
+
+            if (empty($newName)) {
+                throw new Exception('New name cannot be empty.');
+            }
+
+            if (!File::rename($fileId, $userId, $newName)) {
+                throw new Exception('Failed to rename file. You may not have permission or the file does not exist.');
+            }
+
+            $this->sendJsonResponse(['status' => 'success', 'message' => 'File renamed successfully.']);
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function remove(): void
+    {
+        if (!Auth::check()) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
+            return;
+        }
+
+        try {
+            $userId = Auth::getUser()['id'];
+            $fileId = (int)$_POST['id'];
+
+            if (!File::delete($fileId, $userId)) {
+                throw new Exception('Failed to delete file. You may not have permission or the file does not exist.');
+            }
+
+            $this->sendJsonResponse(['status' => 'success', 'message' => 'File deleted successfully.']);
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function download(int $id): void
+    {
+        // Implementation for downloading a file
+    }
+
+    // Methods for sharing
+    public function getSharedUsers(int $id): void {}
+    public function shareWithUser(int $id, int $userId): void {}
+    public function unshareWithUser(int $id, int $userId): void {}
 }
