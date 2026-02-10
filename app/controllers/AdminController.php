@@ -10,6 +10,7 @@ class AdminController extends BaseController
 {
     public function __construct()
     {
+        parent::__construct();
         // Redirect non-admins to the login page
         if (!Auth::isAdmin()) {
             header('Location: /login');
