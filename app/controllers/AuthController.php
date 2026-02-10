@@ -13,7 +13,7 @@ class AuthController extends BaseController
 {
     public function showRegistrationForm(): void
     {
-        $this->renderView('register');
+        $this->render('register');
     }
 
     public function register(): void
@@ -42,13 +42,13 @@ class AuthController extends BaseController
             exit;
 
         } catch (Exception $e) {
-            $this->renderView('register', ['error' => $e->getMessage()]);
+            $this->render('register', ['error' => $e->getMessage()]);
         }
     }
 
     public function showLoginForm(): void
     {
-        $this->renderView('login');
+        $this->render('login');
     }
 
     public function login(): void
@@ -69,7 +69,7 @@ class AuthController extends BaseController
             exit;
 
         } catch (Exception $e) {
-            $this->renderView('login', ['error' => $e->getMessage()]);
+            $this->render('login', ['error' => $e->getMessage()]);
         }
     }
 
