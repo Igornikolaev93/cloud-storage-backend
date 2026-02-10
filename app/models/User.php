@@ -10,6 +10,10 @@ class User
 {
     public static function create(array $data): ?int
     {
+        if (self::findByUsername($data['username'])) {
+            throw new Exception('Username already exists');
+        }
+
         if (self::findByEmail($data['email'])) {
             throw new Exception('Email already exists');
         }
@@ -39,6 +43,12 @@ class User
     {
         $sql = "SELECT * FROM users WHERE email = :email";
         return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
+    }
+
+    public static function findByUsername(string $username): ?array
+    {
+        $sql = "SELECT * FROM users WHERE username = :username";
+        return Database::fetchOne($sql, ['username' => $username]);
     }
     
     public static function getAll(): array

@@ -33,7 +33,8 @@ class AuthController extends BaseController
             $userData = [
                 'username' => $username,
                 'email' => $email,
-                'password' => $password
+                'password' => $password,
+                'role' => 'user' // Default role
             ];
 
             // Grant admin role if the email matches

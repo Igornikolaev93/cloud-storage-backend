@@ -14,12 +14,12 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            $driver = 'pgsql';
-            $host = 'dpg-d624o9sh2g0os7387am6g-a.oregon-postgres.render.com';
-            $port = '5432';
-            $dbname = 'cloude_db';
-            $username = 'cloude_user';
-            $password = 'miiW801cahpwa8KTjGk7LASxtKYnGilT';
+            $driver = 'mysql';
+            $host = 'localhost';
+            $port = '3306';
+            $dbname = 'cloud_storage';
+            $username = 'root';
+            $password = '';
 
             $dsn = sprintf(
                 '%s:host=%s;port=%s;dbname=%s',
@@ -34,7 +34,7 @@ class Database
                 ]);
             } catch (PDOException $e) {
                 error_log("Database Connection Error: " . $e->getMessage());
-                throw new Exception('Could not connect to the database.');
+                throw new Exception('Could not connect to the database. Please check your configuration.');
             }
         }
         return self::$connection;
@@ -49,7 +49,7 @@ class Database
             return $result ?: null;
         } catch (PDOException $e) {
             error_log("Database FetchOne Error: " . $e->getMessage());
-            return null;
+            throw new Exception('Database query failed: ' . $e->getMessage());
         }
     }
 
@@ -61,7 +61,7 @@ class Database
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Database FetchAll Error: " . $e->getMessage());
-            return [];
+            throw new Exception('Database query failed: ' . $e->getMessage());
         }
     }
 
@@ -73,18 +73,32 @@ class Database
 
         try {
             $pdo = self::getConnection();
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+            if ($driver === 'pgsql') {
+                $sql .= " RETURNING id";
+            }
+
             $stmt = $pdo->prepare($sql);
             $stmt->execute($data);
-            $sequenceName = $table . '_id_seq';
-            return (int)$pdo->lastInsertId($sequenceName);
+
+            if ($driver === 'mysql') {
+                return (int)$pdo->lastInsertId();
+            } elseif ($driver === 'pgsql') {
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                return $result ? (int)$result['id'] : null;
+            }
+            return null;
         } catch (PDOException $e) {
             error_log("Database Insert Error: " . $e->getMessage());
-            return null;
+            throw new Exception('Database insert failed: ' . $e->getMessage());
         }
     }
 
     public static function update(string $table, array $data, array $conditions): int
     {
+        $setParams = $data;
+        $whereParams = [];
         $dataFields = [];
         foreach ($data as $key => $value) {
             $dataFields[] = "{$key} = :{$key}";
@@ -94,19 +108,20 @@ class Database
         $conditionFields = [];
         foreach ($conditions as $key => $value) {
             $conditionFields[] = "{$key} = :cond_{$key}";
-            $data["cond_{$key}"] = $value;
+            $whereParams["cond_{$key}"] = $value;
         }
         $conditionString = implode(" AND ", $conditionFields);
 
         $sql = "UPDATE {$table} SET {$dataString} WHERE {$conditionString}";
+        $allParams = array_merge($setParams, $whereParams);
 
         try {
             $stmt = self::getConnection()->prepare($sql);
-            $stmt->execute($data);
+            $stmt->execute($allParams);
             return $stmt->rowCount();
         } catch (PDOException $e) {
             error_log("Database Update Error: " . $e->getMessage());
-            return 0;
+            throw new Exception('Database update failed: ' . $e->getMessage());
         }
     }
 
@@ -117,7 +132,6 @@ class Database
             $conditionFields[] = "{$key} = :{$key}";
         }
         $conditionString = implode(" AND ", $conditionFields);
-
         $sql = "DELETE FROM {$table} WHERE {$conditionString}";
 
         try {
@@ -126,7 +140,7 @@ class Database
             return $stmt->rowCount();
         } catch (PDOException $e) {
             error_log("Database Delete Error: " . $e->getMessage());
-            return 0;
+            throw new Exception('Database delete failed: ' . $e->getMessage());
         }
     }
 }
