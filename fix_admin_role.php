@@ -1,5 +1,4 @@
 <?php
-require __DIR__ . '/app/config/config.php';
 require __DIR__ . '/app/models/Database.php';
 require __DIR__ . '/app/models/User.php';
 
@@ -10,12 +9,13 @@ $adminEmail = 'admin@example.com';
 $adminRole = 'admin';
 
 try {
-    // Устанавливаем соединение с базой данных
+    // Establish database connection
     Database::getConnection();
     echo "Database connection successful.\n";
 
-    // Ищем пользователя
-    $user = User::findByEmail($adminEmail);
+    // Find the user
+    $userModel = new User();
+    $user = $userModel->findByEmail($adminEmail);
 
     if ($user) {
         echo "User found: " . $user['email'] . "\n";
@@ -23,7 +23,7 @@ try {
 
         if ($user['role'] !== $adminRole) {
             echo "Updating role to 'admin'...\n";
-            if (User::changeRole((int)$user['id'], $adminRole)) {
+            if ($userModel->update($user['id'], ['role' => $adminRole])) {
                 echo "Role updated successfully!\n";
             } else {
                 echo "Failed to update role.\n";
@@ -32,7 +32,7 @@ try {
             echo "User already has the 'admin' role.\n";
         }
     } else {
-        echo "Administrator account not found. Please run create_admin.php first.\n";
+        echo "Administrator account not found. Please create a user with the email 'admin@example.com'.\n";
     }
 
 } catch (Exception $e) {
