@@ -11,7 +11,7 @@ if (!Auth::check()) {
     exit;
 }
 
-$user = Auth::user();
+$user = Auth::getUser();
 $currentParentId = isset($_GET['dir']) ? (int)$_GET['dir'] : null;
 $error_message = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : null;
 
