@@ -33,27 +33,27 @@ class User
 
     public static function findById(int $id): ?array
     {
-        $sql = "SELECT id, email, username, created_at, updated_at, role 
-                FROM users WHERE id = :id";
+        $sql = 'SELECT "id", "email", "username", "created_at", "updated_at", "role" 
+                FROM "users" WHERE "id" = :id';
 
         return Database::fetchOne($sql, ['id' => $id]);
     }
 
     public static function findByEmail(string $email): ?array
     {
-        $sql = "SELECT * FROM users WHERE email = :email";
+        $sql = 'SELECT * FROM "users" WHERE "email" = :email';
         return Database::fetchOne($sql, ['email' => strtolower(trim($email))]);
     }
 
     public static function findByUsername(string $username): ?array
     {
-        $sql = "SELECT * FROM users WHERE username = :username";
+        $sql = 'SELECT * FROM "users" WHERE "username" = :username';
         return Database::fetchOne($sql, ['username' => $username]);
     }
     
     public static function getAll(): array
     {
-        $sql = "SELECT id, email, username, created_at, updated_at, role FROM users ORDER BY created_at DESC";
+        $sql = 'SELECT "id", "email", "username", "created_at", "updated_at", "role" FROM "users" ORDER BY "created_at" DESC';
         return Database::fetchAll($sql);
     }
 
@@ -113,7 +113,7 @@ class User
 
     public static function findByPasswordResetToken(string $token): ?array
     {
-        $sql = "SELECT * FROM password_resets WHERE token = :token AND expires_at > NOW()";
+        $sql = 'SELECT * FROM "password_resets" WHERE "token" = :token AND "expires_at" > NOW()';
         $reset = Database::fetchOne($sql, ['token' => $token]);
 
         if ($reset) {
