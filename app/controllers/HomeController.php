@@ -9,11 +9,12 @@ class HomeController extends BaseController
 {
     public function __construct()
     {
+        parent::__construct();
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
     }
-    
+
     /**
      * GET /
      * Displays the home page.
@@ -22,20 +23,15 @@ class HomeController extends BaseController
     public function index(): void
     {
         if (Auth::check()) {
-            // Fetch the user data from the Auth utility using the correct method name.
             $user = Auth::getUser();
 
-            // If for some reason the user is not found in the session, redirect to login.
             if (!$user) {
-                header('Location: /login');
-                exit;
+                $this->redirect('/login');
             }
             
-            // Pass the user data to the view.
-            $this->renderView('home', ['user' => $user]);
+            $this->render('home', ['user' => $user]);
         } else {
-            header('Location: /login');
-            exit;
+            $this->redirect('/login');
         }
     }
 }
