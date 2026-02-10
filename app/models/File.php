@@ -3,64 +3,124 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Exception;
+
 class File
 {
     /**
-     * Get files from a specific directory.
+     * Find files and folders by parent ID, for a specific user.
      */
-    public static function getFiles(int $userId, ?int $directoryId): array
+    public static function findByParentId(int $userId, ?int $parentId): array
     {
-        $sql = "SELECT id, file_name as name, upload_date as created_at, file_size as size FROM files WHERE user_id = :user_id AND " . 
-               ($directoryId ? "directory_id = :directory_id" : "directory_id IS NULL");
+        $sql = 'SELECT * FROM "files" WHERE "user_id" = :user_id AND ';
 
-        $params = ['user_id' => $userId];
-        if ($directoryId) {
-            $params['directory_id'] = $directoryId;
+        if ($parentId === null) {
+            $sql .= '"parent_id" IS NULL';
+            $params = ['user_id' => $userId];
+        } else {
+            $sql .= '"parent_id" = :parent_id';
+            $params = ['user_id' => $userId, 'parent_id' => $parentId];
         }
+
+        $sql .= ' ORDER BY "is_folder" DESC, "name" ASC';
 
         return Database::fetchAll($sql, $params);
     }
 
     /**
-     * Find a file by its ID.
+     * Get breadcrumbs for a given folder ID for a specific user.
      */
-    public static function findById(int $fileId, int $userId): ?array
+    public static function getBreadcrumbs(int $userId, ?int $parentId): array
     {
-        return Database::fetchOne(
-            'SELECT * FROM files WHERE id = :id AND user_id = :user_id',
-            ['id' => $fileId, 'user_id' => $userId]
-        );
+        $breadcrumbs = [];
+        $currentId = $parentId;
+
+        while ($currentId !== null) {
+            $folder = self::findById($currentId);
+            if (!$folder || $folder['user_id'] != $userId) {
+                // Invalid ID or not owned by user, stop.
+                break;
+            }
+            // Add to the beginning of the array
+            array_unshift($breadcrumbs, $folder);
+            $currentId = $folder['parent_id'];
+        }
+
+        return $breadcrumbs;
+    }
+
+    /**
+     * Find a file or folder by its ID. It does not check for user ownership.
+     * The controller is responsible for verifying the user owns the resource.
+     */
+    public static function findById(int $id): ?array
+    {
+        return Database::fetchOne('SELECT * FROM "files" WHERE "id" = :id', ['id' => $id]);
+    }
+
+    /**
+     * Create a new folder record.
+     */
+    public static function createFolder(int $userId, ?int $parentId, string $name): ?int
+    {
+        return Database::insert('files', [
+            'user_id' => $userId,
+            'parent_id' => $parentId,
+            'name' => $name,
+            'is_folder' => true,
+        ]);
     }
 
     /**
      * Create a new file record.
+     * The actual file content is expected to be stored elsewhere; this just creates the DB record.
      */
-    public static function create(int $userId, ?int $directoryId, string $originalName, string $storedName, string $mimeType, int $size): bool
+    public static function create(int $userId, ?int $parentId, string $name, int $size, string $path, string $mimeType): ?int
     {
         return Database::insert('files', [
             'user_id' => $userId,
-            'directory_id' => $directoryId,
-            'file_name' => $originalName,
-            'file_path' => $storedName,
-            'mime_type' => $mimeType,
+            'parent_id' => $parentId,
+            'name' => $name,
+            'is_folder' => false,
             'file_size' => $size,
-            'upload_date' => date('Y-m-d H:i:s')
-        ]) !== null;
+            'file_path' => $path,
+            'mime_type' => $mimeType,
+        ]);
+    }
+    
+    /**
+     * Rename a file or folder.
+     */
+    public static function rename(int $id, int $userId, string $newName): bool
+    {
+        return Database::update('files', ['name' => $newName], ['id' => $id, 'user_id' => $userId]) > 0;
     }
 
     /**
-     * Rename a file.
+     * Delete a file or folder (recursively for folders).
      */
-    public static function rename(int $fileId, int $userId, string $newName): bool
+    public static function delete(int $id, int $userId): bool
     {
-        return Database::update('files', ['file_name' => $newName], ['id' => $fileId, 'user_id' => $userId]) > 0;
-    }
+        $item = self::findById($id);
 
-    /**
-     * Delete a file.
-     */
-    public static function delete(int $fileId, int $userId): bool
-    {
-        return Database::delete('files', ['id' => $fileId, 'user_id' => $userId]) > 0;
+        if (!$item || $item['user_id'] != $userId) {
+            return false; // Not found or no permission
+        }
+
+        // If it's a folder, delete its children first
+        if ($item['is_folder']) {
+            $children = self::findByParentId($userId, $id);
+            foreach ($children as $child) {
+                self::delete($child['id'], $userId); // Recursive call
+            }
+        } else {
+            // Optionally, delete the physical file
+            if ($item['file_path'] && file_exists($item['file_path'])) {
+                @unlink($item['file_path']);
+            }
+        }
+
+        // Delete the item from the database
+        return Database::delete('files', ['id' => $id]) > 0;
     }
 }
