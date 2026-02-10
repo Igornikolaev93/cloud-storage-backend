@@ -36,7 +36,7 @@ class AuthController extends BaseController
 
             $user = User::findById($userId);
 
-            Auth::login($user);
+            Auth::login($user['id']);
             
             header('Location: /files');
             exit;
@@ -63,7 +63,7 @@ class AuthController extends BaseController
                 throw new Exception('Invalid email or password.');
             }
 
-            Auth::login($user);
+            Auth::login($user['id']);
 
             header('Location: /files');
             exit;
