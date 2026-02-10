@@ -9,7 +9,7 @@ class HomeController extends BaseController
 {
     public function __construct()
     {
-        parent::__construct();
+        parent::__construct(); // Initializes the templating engine
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
@@ -18,7 +18,6 @@ class HomeController extends BaseController
     /**
      * GET /
      * Displays the home page.
-     * This method now fetches the user data using the correct Auth::getUser() method and passes it to the view.
      */
     public function index(): void
     {
@@ -26,11 +25,14 @@ class HomeController extends BaseController
             $user = Auth::getUser();
 
             if (!$user) {
+                // Use the new redirect method
                 $this->redirect('/login');
             }
             
+            // Use the new render method
             $this->render('home', ['user' => $user]);
         } else {
+            // Use the new redirect method
             $this->redirect('/login');
         }
     }
