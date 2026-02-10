@@ -3,23 +3,28 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require __DIR__ . '/app/config/config.php';
-require __DIR__ . '/app/models/Database.php';
+require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/app/models/User.php';
 
-use App\Models\Database;
 use App\Models\User;
 
+if ($argc < 4) {
+    echo "Usage: php create_user.php <username> <email> <password>\n";
+    exit(1);
+}
+
+$username = $argv[1];
+$email = $argv[2];
+$password = $argv[3];
+
 $userData = [
-    'email' => 'goscha.nikolae2015@yandex.ru',
-    'username' => 'goscha',
-    'password' => 'password123',
+    'username' => $username,
+    'email' => $email,
+    'password' => $password,
 ];
 
 try {
     echo "Attempting to create user...\n";
-    Database::getConnection();
-    echo "Database connection successful.\n";
 
     if (User::findByEmail($userData['email'])) {
         echo "User with email '" . $userData['email'] . "' already exists.\n";
@@ -29,8 +34,8 @@ try {
         if ($userId) {
             echo "User account created successfully!\n";
             echo "User ID: " . $userId . "\n";
+            echo "Username: " . $userData['username'] . "\n";
             echo "Email: " . $userData['email'] . "\n";
-            echo "Password: " . $userData['password'] . "\n";
         } else {
             echo "Failed to create user account.\n";
         }
