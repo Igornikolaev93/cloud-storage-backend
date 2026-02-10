@@ -9,9 +9,8 @@ use App\Models\User;
 // Данные для нового администратора
 $adminData = [
     'email' => 'admin@example.com',
+    'username' => 'admin',
     'password' => 'password123',
-    'first_name' => 'Admin',
-    'last_name' => 'User',
     'role' => 'admin'
 ];
 
