@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// --- Static File Server ---
+// If the request is for a file in the public directory, serve it directly.
+$path = __DIR__ . '/public' . $_SERVER['REQUEST_URI'];
+if (is_file($path)) {
+    return false;
+}
+
 // --- CRITICAL FIX ---
 // The session must be started at the very beginning of the application's entry point.
 // Without this, session data (like the logged-in user) is lost on every request.
