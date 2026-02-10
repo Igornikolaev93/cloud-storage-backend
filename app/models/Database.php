@@ -15,7 +15,7 @@ class Database
     {
         if (self::$connection === null) {
             $driver = 'pgsql';
-            $host = '35.227.164.209'; // <-- Updated IP Address
+            $host = '35.227.164.209';
             $port = '5432';
             $dbname = 'cloude_db';
             $username = 'cloude_user';
@@ -67,8 +67,10 @@ class Database
 
     public static function insert(string $table, array $data): ?int
     {
-        $columns = implode(", ", array_keys($data));
+        // Use double quotes for column names for PostgreSQL compatibility
+        $columns = implode(", ", array_map(fn($col) => '"'.$col.'"', array_keys($data)));
         $placeholders = ":" . implode(", :", array_keys($data));
+        // Use double quotes for the table name
         $sql = "INSERT INTO \"{$table}\" ({$columns}) VALUES ({$placeholders}) RETURNING id";
 
         try {
@@ -79,6 +81,7 @@ class Database
             return $result ? (int)$result['id'] : null;
         } catch (PDOException $e) {
             error_log("Database Insert Error: " . $e->getMessage());
+            // Re-throw with a more specific message
             throw new Exception('Database insert failed: ' . $e->getMessage());
         }
     }
