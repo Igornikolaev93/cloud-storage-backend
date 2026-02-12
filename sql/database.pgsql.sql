@@ -1,116 +1,87 @@
---
--- SQL script for creating the PostgreSQL database structure for the Cloud Storage project.
---
+-- Adminer 4.8.1 PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) dump
 
--- Enable the extension for generating UUIDs if needed in the future.
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+DROP TABLE IF EXISTS "directories";
+DROP SEQUENCE IF EXISTS directories_id_seq;
+CREATE SEQUENCE directories_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
--- Drop tables with CASCADE to ensure a clean start, removing all dependent objects.
-DROP TABLE IF EXISTS "file_shares" CASCADE;
-DROP TABLE IF EXISTS "password_resets" CASCADE;
-DROP TABLE IF EXISTS "files" CASCADE;
-DROP TABLE IF EXISTS "directories" CASCADE;
-DROP TABLE IF EXISTS "users" CASCADE;
-
---
--- Table: users
--- Stores user account information.
---
-CREATE TABLE "users" (
-    "id" SERIAL PRIMARY KEY,
-    "username" VARCHAR(50) NOT NULL UNIQUE,
-    "email" VARCHAR(100) NOT NULL UNIQUE,
-    "password_hash" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(20) NOT NULL DEFAULT 'user', -- Added role column
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-COMMENT ON TABLE "users" IS 'Stores user accounts.';
-COMMENT ON COLUMN "users"."password_hash" IS 'Password hash created with password_hash().';
-
---
--- Table: directories
--- Stores information about user-created directories.
---
-CREATE TABLE "directories" (
-    "id" SERIAL PRIMARY KEY,
-    "user_id" INTEGER NOT NULL,
-    "parent_id" INTEGER NULL, -- Null for root-level directories
-    "name" VARCHAR(255) NOT NULL,
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "fk_user"
-        FOREIGN KEY("user_id") 
-        REFERENCES "users"("id")
-        ON DELETE CASCADE, -- Deleting a user deletes their directories
-    CONSTRAINT "fk_parent"
-        FOREIGN KEY("parent_id") 
-        REFERENCES "directories"("id")
-        ON DELETE CASCADE -- Deleting a parent directory deletes its children
-);
-
-CREATE INDEX "idx_directory_user_id" ON "directories"("user_id");
--- A user cannot have two directories with the same name under the same parent.
-CREATE UNIQUE INDEX "idx_unique_directory_name" ON "directories"("user_id", "parent_id", "name");
+CREATE TABLE "public"."directories" (
+    "id" integer DEFAULT nextval('directories_id_seq') NOT NULL,
+    "user_id" integer NOT NULL,
+    "parent_id" integer,
+    "name" character varying(255) NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL,
+    CONSTRAINT "directories_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "directories_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE NOT DEFERRABLE,
+    CONSTRAINT "directories_parent_id_fkey" FOREIGN KEY (parent_id) REFERENCES directories(id) ON DELETE CASCADE NOT DEFERRABLE
+) WITH (oids = false);
 
 
---
--- Table: files
--- Stores metadata about uploaded files.
---
-CREATE TABLE "files" (
-    "id" SERIAL PRIMARY KEY,
-    "user_id" INTEGER NOT NULL,
-    "directory_id" INTEGER NULL, -- Null for files in the root directory
-    "file_name" VARCHAR(255) NOT NULL,
-    "file_path" VARCHAR(512) NOT NULL UNIQUE,
-    "file_size" BIGINT NOT NULL,
-    "mime_type" VARCHAR(100) NOT NULL,
-    "upload_date" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "access_token" VARCHAR(255) NULL UNIQUE,
-    CONSTRAINT "fk_user"
-        FOREIGN KEY("user_id") 
-        REFERENCES "users"("id")
-        ON DELETE CASCADE,
-    CONSTRAINT "fk_directory"
-        FOREIGN KEY("directory_id")
-        REFERENCES "directories"("id")
-        ON DELETE SET NULL -- If a directory is deleted, move files to the root
-);
+DROP TABLE IF EXISTS "files";
+DROP SEQUENCE IF EXISTS files_id_seq;
+CREATE SEQUENCE files_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
-CREATE INDEX "idx_file_user_id" ON "files"("user_id");
-CREATE INDEX "idx_file_directory_id" ON "files"("directory_id");
+CREATE TABLE "public"."files" (
+    "id" integer DEFAULT nextval('files_id_seq') NOT NULL,
+    "user_id" integer NOT NULL,
+    "parent_id" integer,
+    "is_folder" boolean DEFAULT false NOT NULL,
+    "name" character varying(255) NOT NULL,
+    "path" character varying(255),
+    "size" bigint,
+    "type" character varying(255),
+    "is_public" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL,
+    "downloads" integer DEFAULT '0' NOT NULL,
+    CONSTRAINT "files_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "files_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE NOT DEFERRABLE
+) WITH (oids = false);
 
-COMMENT ON TABLE "files" IS 'Stores metadata about uploaded files.';
 
---
--- Table: password_resets
--- Stores tokens for password resets.
---
-CREATE TABLE "password_resets" (
-    "id" SERIAL PRIMARY KEY,
-    "user_id" INTEGER NOT NULL,
-    "token" VARCHAR(255) NOT NULL UNIQUE,
-    "expires_at" TIMESTAMPTZ NOT NULL,
-    CONSTRAINT "fk_user"
-        FOREIGN KEY("user_id") 
-        REFERENCES "users"("id")
-        ON DELETE CASCADE
-);
+DROP TABLE IF EXISTS "password_resets";
+DROP SEQUENCE IF EXISTS password_resets_id_seq;
+CREATE SEQUENCE password_resets_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
-CREATE INDEX "idx_password_token" ON "password_resets"("token");
+CREATE TABLE "public"."password_resets" (
+    "id" integer DEFAULT nextval('password_resets_id_seq') NOT NULL,
+    "email" character varying(255) NOT NULL,
+    "token" character varying(255) NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "expires_at" timestamp NOT NULL,
+    CONSTRAINT "password_resets_pkey" PRIMARY KEY ("id")
+) WITH (oids = false);
 
--- Trigger function to automatically update the updated_at field
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated_at = NOW();
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
 
--- Apply the trigger to the users table
-CREATE TRIGGER "update_users_updated_at"
-BEFORE UPDATE ON "users"
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+DROP TABLE IF EXISTS "shares";
+DROP SEQUENCE IF EXISTS shares_id_seq;
+CREATE SEQUENCE shares_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+
+CREATE TABLE "public"."shares" (
+    "id" integer DEFAULT nextval('shares_id_seq') NOT NULL,
+    "file_id" integer NOT NULL,
+    "token" character varying(255) NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "expires_at" timestamp,
+    CONSTRAINT "shares_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "shares_file_id_fkey" FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE NOT DEFERRABLE
+) WITH (oids = false);
+
+
+DROP TABLE IF EXISTS "users";
+DROP SEQUENCE IF EXISTS users_id_seq;
+CREATE SEQUENCE users_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+
+CREATE TABLE "public"."users" (
+    "id" integer DEFAULT nextval('users_id_seq') NOT NULL,
+    "username" character varying(50) NOT NULL,
+    "email" character varying(255) NOT NULL,
+    "password_hash" character varying(255) NOT NULL,
+    "role" character varying(20) DEFAULT 'user' NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    CONSTRAINT "users_email_key" UNIQUE ("email"),
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "users_username_key" UNIQUE ("username")
+) WITH (oids = false);
