@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS "files" (
     "file_size" INTEGER NOT NULL,
     "file_type" VARCHAR(255) NOT NULL,
     "is_public" BOOLEAN NOT NULL DEFAULT false,
+    "parent_id" INTEGER,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT "fk_user"
