@@ -39,7 +39,7 @@ class FileController extends BaseController
 
         try {
             $userId = Auth::getUser()['id'];
-            $folderName = trim($_POST['folder_name']);
+            $folderName = trim($_POST['filename']);
             $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== 'null' ? (int)$_POST['parent_id'] : null;
 
             if (empty($folderName)) {
@@ -102,7 +102,7 @@ class FileController extends BaseController
         try {
             $userId = Auth::getUser()['id'];
             $fileId = (int)$_POST['id'];
-            $newName = trim($_POST['name']);
+            $newName = trim($_POST['filename']);
 
             if (empty($newName)) {
                 throw new Exception('New name cannot be empty.');
