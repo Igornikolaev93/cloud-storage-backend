@@ -17,7 +17,7 @@ echo "Starting database migration...\n";
 require_once __DIR__ . '/app/config/config.php';
 require_once __DIR__ . '/app/models/Database.php';
 
-$sqlFilePath = __DIR__ . '/sql/database.pgsql.sql';
+$sqlFilePath = __DIR__ . '/schema.sql';
 
 if (!file_exists($sqlFilePath)) {
     die("ERROR: SQL file not found at: {$sqlFilePath}\n");
