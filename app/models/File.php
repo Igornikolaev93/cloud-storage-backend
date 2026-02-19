@@ -61,12 +61,12 @@ class File
     /**
      * Create a new folder record.
      */
-    public static function createFolder(int $userId, ?int $parentId, string $name): ?int
+    public static function createFolder(int $userId, ?int $parentId, string $filename): ?int
     {
         return Database::insert('files', [
             'user_id' => $userId,
             'parent_id' => $parentId,
-            'filename' => $name,
+            'filename' => $filename,
             'is_folder' => true,
         ]);
     }

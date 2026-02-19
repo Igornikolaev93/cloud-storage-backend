@@ -39,14 +39,14 @@ class FileController extends BaseController
 
         try {
             $userId = Auth::getUser()['id'];
-            $folderName = trim($_POST['filename']);
+            $filename = trim($_POST['filename']);
             $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== 'null' ? (int)$_POST['parent_id'] : null;
 
-            if (empty($folderName)) {
+            if (empty($filename)) {
                 throw new Exception('Folder name cannot be empty.');
             }
 
-            $folderId = File::createFolder($userId, $parentId, $folderName);
+            $folderId = File::createFolder($userId, $parentId, $filename);
             $folder = File::findById($folderId);
 
             $this->sendJsonResponse(['status' => 'success', 'message' => 'Folder created successfully.', 'data' => $folder]);
@@ -88,7 +88,7 @@ class FileController extends BaseController
 
             $this->sendJsonResponse(['status' => 'success', 'message' => 'File uploaded successfully.', 'data' => $uploadedFile]);
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
+            $this->sendJsonResponse(['status' => 'error',.message' => $e->getMessage()], 400);
         }
     }
 
