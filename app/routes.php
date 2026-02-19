@@ -67,7 +67,7 @@ Router::post('/directories/remove', [DirectoryController::class, 'remove']);
 
 // User Management (Admin)
 Router::get('/admin/users', [AdminController::class, 'index']);
-Router::get('/admin/users/edit',.php', [AdminController::class, 'editUser']);
+Router::get('/admin/users/edit', [AdminController::class, 'editUser']);
 Router::post('/admin/users/update', [AdminController::class, 'updateUser']);
 Router::post('/admin/users/delete', [AdminController::class, 'deleteUser']);
 
