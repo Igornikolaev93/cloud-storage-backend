@@ -22,7 +22,7 @@ class File
             $params = ['user_id' => $userId, 'parent_id' => $parentId];
         }
 
-        $sql .= ' ORDER BY "is_folder" DESC, "filename" ASC';
+        $sql .= ' ORDER BY "is_folder" DESC, "name" ASC';
 
         return Database::fetchAll($sql, $params);
     }
@@ -61,12 +61,12 @@ class File
     /**
      * Create a new folder record.
      */
-    public static function createFolder(int $userId, ?int $parentId, string $filename): ?int
+    public static function createFolder(int $userId, ?int $parentId, string $name): ?int
     {
         return Database::insert('files', [
             'user_id' => $userId,
             'parent_id' => $parentId,
-            'filename' => $filename,
+            'name' => $name,
             'is_folder' => true,
         ]);
     }
@@ -75,12 +75,12 @@ class File
      * Create a new file record.
      * The actual file content is expected to be stored elsewhere; this just creates the DB record.
      */
-    public static function create(int $userId, ?int $parentId, string $filename, int $size, string $path, string $mimeType): ?int
+    public static function create(int $userId, ?int $parentId, string $name, int $size, string $path, string $mimeType): ?int
     {
         return Database::insert('files', [
             'user_id' => $userId,
             'parent_id' => $parentId,
-            'filename' => $filename,
+            'name' => $name,
             'is_folder' => false,
             'file_size' => $size,
             'file_path' => $path,
@@ -93,7 +93,7 @@ class File
      */
     public static function rename(int $id, int $userId, string $newName): bool
     {
-        return Database::update('files', ['filename' => $newName], ['id' => $id, 'user_id' => $userId]) > 0;
+        return Database::update('files', ['name' => $newName], ['id' => $id, 'user_id' => $userId]) > 0;
     }
 
     /**

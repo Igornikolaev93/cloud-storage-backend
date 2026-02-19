@@ -39,14 +39,14 @@ class FileController extends BaseController
 
         try {
             $userId = Auth::getUser()['id'];
-            $filename = trim($_POST['filename']);
+            $name = trim($_POST['name']);
             $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== 'null' ? (int)$_POST['parent_id'] : null;
 
-            if (empty($filename)) {
+            if (empty($name)) {
                 throw new Exception('Folder name cannot be empty.');
             }
 
-            $folderId = File::createFolder($userId, $parentId, $filename);
+            $folderId = File::createFolder($userId, $parentId, $name);
             $folder = File::findById($folderId);
 
             $this->sendJsonResponse(['status' => 'success', 'message' => 'Folder created successfully.', 'data' => $folder]);
@@ -75,11 +75,11 @@ class FileController extends BaseController
             }
 
             $tmpName = $_FILES['file']['tmp_name'];
-            $fileName = $_FILES['file']['name'];
+            $name = $_FILES['file']['name'];
             $fileSize = $_FILES['file']['size'];
             $mimeType = $_FILES['file']['type'];
             
-            $fileId = File::create($userId, $parentId, $fileName, $fileSize, $tmpName, $mimeType);
+            $fileId = File::create($userId, $parentId, $name, $fileSize, $tmpName, $mimeType);
             if (!$fileId) {
                 throw new Exception('Failed to save the file to the database.');
             }
@@ -102,7 +102,7 @@ class FileController extends BaseController
         try {
             $userId = Auth::getUser()['id'];
             $fileId = (int)$_POST['id'];
-            $newName = trim($_POST['filename']);
+            $newName = trim($_POST['name']);
 
             if (empty($newName)) {
                 throw new Exception('New name cannot be empty.');
