@@ -49,7 +49,7 @@ Router::get('/logout', [AuthController::class, 'logout']);
 Router::get('/files', [FileController::class, 'index']);
 Router::get('/files/list', [FileController::class, 'list']);
 Router::get('/files/get/{id}', [FileController::class, 'get']);
-Router::post('/files/upload', [FileController::class, 'add']);
+Router::post('/files/upload', [FileController::class, 'upload']);
 Router::post('/files/rename', [FileController::class, 'rename']);
 Router::post('/files/remove', [FileController::class, 'remove']);
 Router::get('/files/download/{id}', [FileController::class, 'download']);
@@ -67,7 +67,7 @@ Router::post('/directories/remove', [DirectoryController::class, 'remove']);
 
 // User Management (Admin)
 Router::get('/admin/users', [AdminController::class, 'index']);
-Router::get('/admin/users/edit', [AdminController::class, 'editUser']);
+Router::get('/admin/users/edit',.php', [AdminController::class, 'editUser']);
 Router::post('/admin/users/update', [AdminController::class, 'updateUser']);
 Router::post('/admin/users/delete', [AdminController::class, 'deleteUser']);
 
