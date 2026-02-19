@@ -1,6 +1,6 @@
 -- Adminer 4.8.1 PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) dump
 
-DROP TABLE IF EXISTS "directories";
+DROP TABLE IF EXISTS "directories" CASCADE;
 DROP SEQUENCE IF EXISTS directories_id_seq;
 CREATE SEQUENCE directories_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
@@ -17,7 +17,7 @@ CREATE TABLE "public"."directories" (
                                     ) WITH (oids = false);
 
 
-                                    DROP TABLE IF EXISTS "files";
+                                    DROP TABLE IF EXISTS "files" CASCADE;
                                     DROP SEQUENCE IF EXISTS files_id_seq;
                                     CREATE SEQUENCE files_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
@@ -39,7 +39,7 @@ CREATE TABLE "public"."directories" (
                                                                                             ) WITH (oids = false);
 
 
-                                                                                            DROP TABLE IF EXISTS "password_resets";
+                                                                                            DROP TABLE IF EXISTS "password_resets" CASCADE;
                                                                                             DROP SEQUENCE IF EXISTS password_resets_id_seq;
                                                                                             CREATE SEQUENCE password_resets_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
@@ -53,7 +53,7 @@ CREATE TABLE "public"."directories" (
                                                                                                                     ) WITH (oids = false);
 
 
-                                                                                                                    DROP TABLE IF EXISTS "shares";
+                                                                                                                    DROP TABLE IF EXISTS "shares" CASCADE;
                                                                                                                     DROP SEQUENCE IF EXISTS shares_id_seq;
                                                                                                                     CREATE SEQUENCE shares_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
@@ -68,7 +68,7 @@ CREATE TABLE "public"."directories" (
                                                                                                                                                 ) WITH (oids = false);
 
 
-                                                                                                                                                DROP TABLE IF EXISTS "users";
+                                                                                                                                                DROP TABLE IF EXISTS "users" CASCADE;
                                                                                                                                                 DROP SEQUENCE IF EXISTS users_id_seq;
                                                                                                                                                 CREATE SEQUENCE users_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 
