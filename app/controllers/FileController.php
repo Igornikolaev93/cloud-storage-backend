@@ -88,7 +88,7 @@ class FileController extends BaseController
 
             $this->sendJsonResponse(['status' => 'success', 'message' => 'File uploaded successfully.', 'data' => $uploadedFile]);
         } catch (Exception $e) {
-            $this->sendJsonResponse(['status' => 'error',.message' => $e->getMessage()], 400);
+            $this->sendJsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
