@@ -66,7 +66,6 @@ class FileController extends BaseController
             $userId = Auth::getUser()['id'];
             $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== 'null' ? (int)$_POST['parent_id'] : null;
 
-            // Expect a single file upload with name 'file'
             if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {
                 throw new Exception('No file was uploaded.');
             }
@@ -78,8 +77,9 @@ class FileController extends BaseController
             $tmpName = $_FILES['file']['tmp_name'];
             $fileName = $_FILES['file']['name'];
             $fileSize = $_FILES['file']['size'];
+            $mimeType = $_FILES['file']['type'];
             
-            $fileId = File::create($userId, $parentId, $fileName, $fileSize, $tmpName);
+            $fileId = File::create($userId, $parentId, $fileName, $fileSize, $tmpName, $mimeType);
             if (!$fileId) {
                 throw new Exception('Failed to save the file to the database.');
             }

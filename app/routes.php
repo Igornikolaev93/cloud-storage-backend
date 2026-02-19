@@ -14,6 +14,7 @@ require_once __DIR__ . '/controllers/FileController.php';
 require_once __DIR__ . '/controllers/DirectoryController.php';
 require_once __DIR__ . '/controllers/AdminController.php';
 require_once __DIR__ . '/controllers/UserController.php';
+require_once __DIR__ . '/controllers/ShareController.php';
 
 // Models
 require_once __DIR__ . '/models/Database.php';
@@ -31,6 +32,7 @@ use App\Controllers\FileController;
 use App\Controllers\DirectoryController;
 use App\Controllers\HomeController;
 use App\Controllers\UserController;
+use App\Controllers\ShareController;
 use App\Utils\Router;
 
 // --- Route Definitions ---
@@ -55,9 +57,10 @@ Router::post('/files/remove', [FileController::class, 'remove']);
 Router::get('/files/download/{id}', [FileController::class, 'download']);
 
 // File Sharing
-Router::get('/files/share/{id}', [FileController::class, 'getSharedUsers']);
-Router::put('/files/share/{id}/{user_id}', [FileController::class, 'shareWithUser']);
-Router::delete('/files/share/{id}/{user_id}', [FileController::class, 'unshareWithUser']);
+Router::post('/files/share/{id}', [ShareController::class, 'share']);
+Router::get('/files/share/{id}', [ShareController::class, 'getSharedUsers']);
+Router::put('/files/share/{id}/{user_id}', [ShareController::class, 'shareWithUser']);
+Router::delete('/files/share/{id}/{user_id}', [ShareController::class, 'unshare']);
 
 // Directory Management
 Router::post('/directories/add', [DirectoryController::class, 'add']);

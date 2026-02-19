@@ -6,21 +6,32 @@ namespace App\Utils;
 class Response
 {
     /**
-     * Отправляет JSON-ответ.
+     * Send a JSON response.
      *
-     * @param mixed $data Данные для кодирования в JSON.
-     * @param int $statusCode HTTP-статус код.
+     * @param mixed $data Data to be encoded in JSON.
+     * @param int $statusCode HTTP status code.
      */
     public static function json($data, int $statusCode = 200): void
     {
-        // Устанавливаем HTTP-статус
+        // Set the HTTP status
         http_response_code($statusCode);
 
-        // Устанавливаем заголовок Content-Type
+        // Set the Content-Type header
         header('Content-Type: application/json');
 
-        // Выводим данные в формате JSON и завершаем выполнение скрипта
+        // Output the data in JSON format and terminate the script
         echo json_encode($data);
+        exit;
+    }
+
+    /**
+     * Redirect the user to a different URL.
+     *
+     * @param string $url The URL to redirect to.
+     */
+    public static function redirect(string $url): void
+    {
+        header('Location: ' . $url);
         exit;
     }
 }
