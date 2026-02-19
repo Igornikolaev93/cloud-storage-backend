@@ -67,11 +67,12 @@ class Database
 
     public static function insert(string $table, array $data): ?int
     {
-        // Use double quotes for column names for PostgreSQL compatibility
         $columns = implode(", ", array_map(fn($col) => '"'.$col.'"', array_keys($data)));
         $placeholders = ":" . implode(", :", array_keys($data));
-        // Use double quotes for the table name
         $sql = "INSERT INTO \"{$table}\" ({$columns}) VALUES ({$placeholders}) RETURNING id";
+
+        error_log("SQL Query: " . $sql);
+        error_log("Data: " . print_r($data, true));
 
         try {
             $pdo = self::getConnection();
@@ -81,7 +82,6 @@ class Database
             return $result ? (int)$result['id'] : null;
         } catch (PDOException $e) {
             error_log("Database Insert Error: " . $e->getMessage());
-            // Re-throw with a more specific message
             throw new Exception('Database insert failed: ' . $e->getMessage());
         }
     }
