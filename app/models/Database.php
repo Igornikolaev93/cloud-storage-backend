@@ -7,6 +7,9 @@ use PDO;
 use PDOException;
 use Exception;
 
+// Include the configuration file
+require_once __DIR__ . '/../config/config.php';
+
 class Database
 {
     private static ?PDO $connection = null;
@@ -14,12 +17,13 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            $driver = 'pgsql';
-            $host = '35.227.164.209';
-            $port = '5432';
-            $dbname = 'cloude_db';
-            $username = 'cloude_user';
-            $password = 'miiW801cahpwa8KTjGk7LASxtKYnGilT';
+            // Use the configuration from config.php
+            $driver = DB_CONFIG['driver'];
+            $host = DB_CONFIG['host'];
+            $port = DB_CONFIG['port'];
+            $dbname = DB_CONFIG['dbname'];
+            $username = DB_CONFIG['username'];
+            $password = DB_CONFIG['password'];
 
             $dsn = sprintf(
                 '%s:host=%s;port=%s;dbname=%s',
@@ -27,11 +31,7 @@ class Database
             );
 
             try {
-                self::$connection = new PDO($dsn, $username, $password, [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ]);
+                self::$connection = new PDO($dsn, $username, $password, DB_CONFIG['options']);
             } catch (PDOException $e) {
                 error_log("Database Connection Error: " . $e->getMessage());
                 throw new Exception('Could not connect to the database. Please check your configuration.');

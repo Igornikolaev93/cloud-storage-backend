@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "files" (
     "id" SERIAL PRIMARY KEY,
     "user_id" INTEGER NOT NULL,
-    "filename" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
     "file_path" VARCHAR(255) NOT NULL,
     "file_size" INTEGER NOT NULL,
     "file_type" VARCHAR(255) NOT NULL,
