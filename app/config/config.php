@@ -16,7 +16,7 @@ define('DB_CONFIG', [
     'host'      => 'localhost',
     'dbname'    => 'dribbbox',
     'username'  => 'postgres',
-    'password'  => 'password', // Please replace with your actual password
+    'password'  => 'postgres', // Please replace with your actual password
     'port'      => '5432',
     'charset'   => 'utf8',
     'options'   => [
