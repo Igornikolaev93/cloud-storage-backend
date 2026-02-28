@@ -13,7 +13,7 @@ define('DB_CONFIG', [
     // ВАЖНО: Используем Session Pooler вместо direct connection
     'host'      => 'aws-0-eu-central-1.pooler.supabase.com',  // Session pooler host
     'port'      => '5432',                                      // Session pooler port
-    'dbname'    => 'storage',
+    'dbname'    => 'postgres', // CORRECTED: Should be 'postgres'
     // Имя пользователя из вашей строки подключения, но с правильным форматом для pooler
     'username'  => 'postgres.vvqrogorxkspdudypriy',            // Формат: postgres.PROJECT_REF
     'password'  => 'Ybrjkftdbujhm16',                           // Ваш пароль
