@@ -13,8 +13,8 @@ ini_set('default_charset', 'UTF-8');
 // --- DATABASE CONFIGURATION ARRAY ---
 define('DB_CONFIG', [
     'driver'    => 'pgsql',
-    'host'      => 'localhost',
-    'dbname'    => 'dribbbox',
+    'host'      => 'db.vvqrogorxkspdudypriy.supabase.co',
+    'dbname'    => 'postgres',
     'username'  => 'postgres',
     'password'  => 'postgres', // Please replace with your actual password
     'port'      => '5432',
