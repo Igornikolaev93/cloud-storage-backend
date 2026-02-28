@@ -24,32 +24,27 @@ class Database
             $username = DB_CONFIG['username'];
             $password = DB_CONFIG['password'];
             
-            // Добавляем sslmode=require для Supabase
+            // Формируем DSN с sslmode=require
             $dsn = sprintf(
                 '%s:host=%s;port=%s;dbname=%s;sslmode=require',
                 $driver, $host, $port, $dbname
             );
 
             try {
-                error_log("Connecting to Supabase pooler...");
-                error_log("DSN: " . $dsn);
+                error_log("Connecting to Supabase...");
+                error_log("Host: " . $host);
+                error_log("Database: " . $dbname);
                 error_log("Username: " . $username);
                 
                 self::$connection = new PDO($dsn, $username, $password, DB_CONFIG['options']);
                 
                 // Проверяем соединение
-                self::$connection->query('SELECT 1');
-                
-                error_log("✅ Successfully connected to Supabase pooler");
+                $stmt = self::$connection->query('SELECT 1');
+                error_log("✅ Successfully connected to Supabase");
                 
             } catch (PDOException $e) {
                 error_log("❌ Connection error: " . $e->getMessage());
-                
-                $errorMessage = 'Could not connect to Supabase. ';
-                $errorMessage .= 'Make sure you are using the pooler connection. ';
-                $errorMessage .= 'Error: ' . $e->getMessage();
-                
-                throw new Exception($errorMessage);
+                throw new Exception('Could not connect to Supabase. Error: ' . $e->getMessage());
             }
         }
         return self::$connection;
