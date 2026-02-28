@@ -9,7 +9,7 @@ if (php_sapi_name() !== 'cli') {
     die("This script can only be run from the command line.");
 }
 
-echo "Starting PostgreSQL database setup...\n";
+echo "Starting PostgreSQL database setup for 'storage' database...\n";
 
 // Check for pdo_pgsql extension
 if (!extension_loaded('pdo_pgsql')) {
@@ -21,29 +21,56 @@ if (!extension_loaded('pdo_pgsql')) {
     exit(1);
 }
 
-echo "PDO PostgreSQL extension is enabled.\n";
+echo "✅ PDO PostgreSQL extension is enabled.\n";
 
 try {
-    echo "Attempting to connect to the database...\n";
+    echo "Attempting to connect to the 'storage' database...\n";
     $pdo = Database::getConnection();
-    echo "Successfully connected to the database.\n";
+    echo "✅ Successfully connected to the 'storage' database.\n";
 
+    // Проверяем, подключились ли мы к правильной базе
+    $stmt = $pdo->query('SELECT current_database()');
+    $currentDb = $stmt->fetchColumn();
+    echo "Current database: {$currentDb}\n";
+
+    if ($currentDb !== 'storage') {
+        echo "⚠️ Warning: Connected to '{$currentDb}' but expected 'storage'\n";
+    }
+
+    // Читаем и выполняем schema.sql
     $sql = file_get_contents(__DIR__ . '/schema.sql');
     if ($sql === false) {
         throw new RuntimeException("Could not read schema.sql file.");
     }
-    echo "Read schema.sql file successfully.\n";
+    echo "✅ Read schema.sql file successfully.\n";
 
+    // Выполняем SQL
     $pdo->exec($sql);
-    echo "Database tables created (or already exist).\n";
-    echo "\nDatabase setup completed successfully!\n";
+    echo "✅ Database tables created (or already exist).\n";
+    
+    // Проверяем созданные таблицы
+    $stmt = $pdo->query("
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        ORDER BY table_name
+    ");
+    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    echo "\n📊 Tables in 'storage' database:\n";
+    foreach ($tables as $table) {
+        echo "   - {$table}\n";
+    }
+    
+    echo "\n✅ Database setup completed successfully!\n";
 
 } catch (Exception $e) {
     echo "\n--- DATABASE SETUP FAILED ---\n";
     echo $e->getMessage() . "\n";
     echo "\n--- TROUBLESHOOTING ---\n";
-    echo "1. Is the database on render.com active and not hibernating?\n";
-    echo "2. Have you added your IP address to the trusted addresses in the render.com dashboard?\n";
-    echo "   For testing, you can add 0.0.0.0/0 to allow all IPs.\n";
+    echo "1. Does the database 'storage' exist in your Supabase project?\n";
+    echo "2. Is your Supabase project active and not hibernating?\n";
+    echo "3. Have you added your IP address to the trusted addresses?\n";
+    echo "4. Check if you have permission to create tables in the 'storage' database\n";
     exit(1);
 }
