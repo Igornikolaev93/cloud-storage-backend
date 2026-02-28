@@ -17,24 +17,39 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            // Use the configuration from config.php
             $driver = DB_CONFIG['driver'];
             $host = DB_CONFIG['host'];
             $port = DB_CONFIG['port'];
             $dbname = DB_CONFIG['dbname'];
             $username = DB_CONFIG['username'];
             $password = DB_CONFIG['password'];
-
+            
+            // Добавляем sslmode=require для Supabase
             $dsn = sprintf(
-                '%s:host=%s;port=%s;dbname=%s',
+                '%s:host=%s;port=%s;dbname=%s;sslmode=require',
                 $driver, $host, $port, $dbname
             );
 
             try {
+                error_log("Connecting to Supabase pooler...");
+                error_log("DSN: " . $dsn);
+                error_log("Username: " . $username);
+                
                 self::$connection = new PDO($dsn, $username, $password, DB_CONFIG['options']);
+                
+                // Проверяем соединение
+                self::$connection->query('SELECT 1');
+                
+                error_log("✅ Successfully connected to Supabase pooler");
+                
             } catch (PDOException $e) {
-                error_log("Database Connection Error: " . $e->getMessage());
-                throw new Exception('Could not connect to the database. Please check your configuration.');
+                error_log("❌ Connection error: " . $e->getMessage());
+                
+                $errorMessage = 'Could not connect to Supabase. ';
+                $errorMessage .= 'Make sure you are using the pooler connection. ';
+                $errorMessage .= 'Error: ' . $e->getMessage();
+                
+                throw new Exception($errorMessage);
             }
         }
         return self::$connection;
@@ -65,74 +80,15 @@ class Database
         }
     }
 
-    public static function insert(string $table, array $data): ?int
+    public static function execute(string $sql, array $params = []): int
     {
-        $columns = implode(", ", array_map(fn($col) => '"'.$col.'"', array_keys($data)));
-        $placeholders = ":" . implode(", :", array_keys($data));
-        $sql = "INSERT INTO \"{$table}\" ({$columns}) VALUES ({$placeholders}) RETURNING id";
-
-        error_log("SQL Query: " . $sql);
-        error_log("Data: " . print_r($data, true));
-
-        try {
-            $pdo = self::getConnection();
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($data);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result ? (int)$result['id'] : null;
-        } catch (PDOException $e) {
-            error_log("Database Insert Error: " . $e->getMessage());
-            throw new Exception('Database insert failed: ' . $e->getMessage());
-        }
-    }
-
-    public static function update(string $table, array $data, array $conditions): int
-    {
-        $setParams = $data;
-        $whereParams = [];
-        $dataFields = [];
-        foreach ($data as $key => $value) {
-            $dataFields[] = "\"{$key}\" = :{$key}";
-        }
-        $dataString = implode(", ", $dataFields);
-
-        $conditionFields = [];
-        foreach ($conditions as $key => $value) {
-            $conditionFields[] = "\"{$key}\" = :cond_{$key}";
-            $whereParams["cond_{$key}"] = $value;
-        }
-        $conditionString = implode(" AND ", $conditionFields);
-
-        $sql = "UPDATE \"{$table}\" SET {$dataString} WHERE {$conditionString}";
-        $allParams = array_merge($setParams, $whereParams);
-
         try {
             $stmt = self::getConnection()->prepare($sql);
-            $stmt->execute($allParams);
+            $stmt->execute($params);
             return $stmt->rowCount();
         } catch (PDOException $e) {
-            error_log("Database Update Error: " . $e->getMessage());
-            throw new Exception('Database update failed: ' . $e->getMessage());
-        }
-    }
-
-    public static function delete(string $table, array $conditions): int
-    {
-        $conditionFields = [];
-        foreach ($conditions as $key => $value) {
-            $conditionFields[] = "\"{$key}\" = :{$key}";
-        }
-        $conditionString = implode(" AND ", $conditionFields);
-
-        $sql = "DELETE FROM \"{$table}\" WHERE {$conditionString}";
-
-        try {
-            $stmt = self::getConnection()->prepare($sql);
-            $stmt->execute($conditions);
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Database Delete Error: " . $e->getMessage());
-            throw new Exception('Database delete failed: ' . $e->getMessage());
+            error_log("Database Execute Error: " . $e->getMessage());
+            throw new Exception('Database query failed: ' . $e->getMessage());
         }
     }
 }

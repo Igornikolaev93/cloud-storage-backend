@@ -10,13 +10,13 @@ ini_set('default_charset', 'UTF-8');
 // --- SUPABASE DATABASE CONFIGURATION ---
 define('DB_CONFIG', [
     'driver'    => 'pgsql',
-    // Session pooler host для поддержки IPv4
-    'host'      => 'aws-0-eu-central-1.pooler.supabase.com',
-    'port'      => '5432',              // Порт для session pooler
-    'dbname'    => 'storage',            // ИЗМЕНЕНО: теперь 'storage'
-    // Формат пользователя: postgres.[PROJECT-REF]
-    'username'  => 'postgres.vvqrogorxkspdudypriy',
-    'password'  => 'лёха27733868',       // Ваш пароль
+    // ВАЖНО: Используем Session Pooler вместо direct connection
+    'host'      => 'aws-0-eu-central-1.pooler.supabase.com',  // Session pooler host
+    'port'      => '5432',                                      // Session pooler port
+    'dbname'    => 'storage',
+    // Имя пользователя из вашей строки подключения, но с правильным форматом для pooler
+    'username'  => 'postgres.vvqrogorxkspdudypriy',            // Формат: postgres.PROJECT_REF
+    'password'  => 'Ybrjkftdbujhm16',                           // Ваш пароль
     'charset'   => 'utf8',
     'options'   => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
