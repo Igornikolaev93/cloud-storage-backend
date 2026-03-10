@@ -13,7 +13,7 @@ echo "Host: " . DB_CONFIG['host'] . "\n";
 echo "Port: " . DB_CONFIG['port'] . "\n";
 echo "Database: " . DB_CONFIG['dbname'] . "\n";
 echo "Username: " . DB_CONFIG['username'] . "\n";
-echo "Password: " . str_repeat('*'', strlen(DB_CONFIG['password'])) . "\n\n";
+echo "Password: " . str_repeat('*', strlen(DB_CONFIG['password'])) . "\n\n";
 
 // Проверка порта
 echo "Проверка порта...\n";
