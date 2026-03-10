@@ -14,7 +14,8 @@ define('DB_CONFIG', [
     'dbname'    => 'postgres',
     // Username с project-ref
     'username'  => 'postgres.vvqrogorxkspdudypriy',
-    'password'  => 'Ybrjkftdbujhm16',
+    // НОВЫЙ ПАРОЛЬ
+    'password'  => 'pppx37CRZxhSUqCt',
     'charset'   => 'utf8',
     'options'   => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
