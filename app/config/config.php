@@ -8,13 +8,13 @@ ini_set('default_charset', 'UTF-8');
 
 define('DB_CONFIG', [
     'driver'    => 'pgsql',
-    // Используем shared pooler (работает с IPv4)
-    'host'      => 'aws-0-eu-central-1.pooler.supabase.com',
-    'port'      => '6543',  // Transaction pooler порт
+    // Точный хост из дашборда
+    'host'      => 'aws-1-eu-west-1.pooler.supabase.com',
+    'port'      => '6543',
     'dbname'    => 'postgres',
-    // Username с project-ref
+    // Точный username из дашборда
     'username'  => 'postgres.vvqrogorxkspdudypriy',
-    // НОВЫЙ ПАРОЛЬ
+    // Ваш пароль
     'password'  => 'pppx37CRZxhSUqCt',
     'charset'   => 'utf8',
     'options'   => [
