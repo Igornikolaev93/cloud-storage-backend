@@ -15,22 +15,22 @@ echo "Database: " . DB_CONFIG['dbname'] . "\n";
 echo "Username: " . DB_CONFIG['username'] . "\n";
 echo "Password: " . str_repeat('*', strlen(DB_CONFIG['password'])) . "\n\n";
 
+$port = DB_CONFIG['port'];
+
 // Проверка порта
 echo "Проверка порта...\n";
-$fp = @fsockopen(DB_CONFIG['host'], DB_CONFIG['port'], $errno, $errstr, 5);
+$fp = @fsockopen(DB_CONFIG['host'], $port, $errno, $errstr, 5);
 if ($fp) {
-    echo "✅ Порт " . DB_CONFIG['port'] . " открыт\n";
+    echo "✅ Порт " . $port . " открыт\n";
     fclose($fp);
 } else {
-    echo "❌ Порт закрыт: " . $errstr . "\n\n";
+    echo "❌ Порт " . $port . " закрыт: " . $errstr . "\n\n";
     echo "Пробуем альтернативный порт 5432...\n";
-    
-    $fp = @fsockopen(DB_CONFIG['host'], 5432, $errno, $errstr, 5);
+    $port = 5432;
+    $fp = @fsockopen(DB_CONFIG['host'], $port, $errno, $errstr, 5);
     if ($fp) {
         echo "✅ Порт 5432 открыт\n";
         fclose($fp);
-        // Меняем порт на 5432
-        DB_CONFIG['port'] = 5432;
     } else {
         echo "❌ Порт 5432 тоже закрыт\n";
     }
@@ -42,7 +42,7 @@ echo "Подключение к базе данных...\n";
 
 try {
     $dsn = DB_CONFIG['driver'] . ':host=' . DB_CONFIG['host'] . 
-           ';port=' . DB_CONFIG['port'] . 
+           ';port=' . $port . 
            ';dbname=' . DB_CONFIG['dbname'] . 
            ';sslmode=require';
     
