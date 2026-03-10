@@ -17,7 +17,7 @@ try {
         echo "Column 'role' already exists in 'users' table.\n";
     } else {
         echo "Column 'role' does not exist. Adding it...\n";
-        $sql = \"ALTER TABLE users ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'user'\";
+        $sql = "ALTER TABLE users ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'user'";
         $pdo->exec($sql);
         echo "Column 'role' added successfully to 'users' table.\n";
     }
