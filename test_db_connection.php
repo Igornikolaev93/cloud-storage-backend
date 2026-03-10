@@ -129,7 +129,7 @@ try {
         echo "📋 Таблицы в базе 'storage':
 ";
         foreach ($tables as $table) {
-            $count = $pdo_storage->query("SELECT COUNT(*) FROM "{$table}"")->fetchColumn();
+            $count = $pdo_storage->query("SELECT COUNT(*) FROM \"{$table}\"")->fetchColumn();
             echo "  - {$table}: {$count} записей
 ";
         }
